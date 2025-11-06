@@ -1,0 +1,38 @@
+# Entorno virtual
+.venv/
+.env
+*.env
+
+# Archivos de Python compilados
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Archivos de logs
+*.log
+
+# Base de datos local (si usas SQLite durante desarrollo)
+db.sqlite3
+
+# Archivos de configuración locales (e.g. Django secret key)
+*/settings_local.py
+*/local_settings.py
+
+# Archivos estáticos generados
+/staticfiles/
+/media/  # si guardas archivos subidos localmente
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Caches
+*.cache
+.DS_Store
