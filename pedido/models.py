@@ -32,11 +32,11 @@ class Pedido(models.Model):
     direccion_envio = models.TextField(blank=True, null=True)
     telefono = models.CharField(max_length=20, blank=True, null=True)
 
-    # cliente = models.ForeignKey('cliente.Cliente', on_delete=models.CASCADE)
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
 
 
     def __str__(self):
-        return self.numero_pedido
+        return f'Pedido {self.numero_pedido} de {self.cliente.user.username}'
 
 class ItemPedido(models.Model):
     pedido = models.ForeignKey(
@@ -47,45 +47,38 @@ class ItemPedido(models.Model):
  
     producto = models.ForeignKey(
         Product,
-        on_delete=models.SET_NULL,  # Guardar ítem aunque el producto se borre
-        null=True
+        on_delete=models.CASCADE, 
     )
     
     talla = models.CharField(max_length=50, blank=True, null=True)
     cantidad = models.PositiveIntegerField(default=1)
 
-    # Guardamos el precio al momento de la compra
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return f"{self.cantidad} x {self.producto_nombre}"
+        return f"{self.cantidad} x {self.producto.nombre}"
 
 class Carrito(models.Model):
- 
     cliente = models.OneToOneField(
         Cliente,
-        on_delete=models.CASCADE,
-        related_name="carrito", 
-        null=True
+        on_delete=models.CASCADE 
     )
     
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Carrito de {self.fecha_creacion}"
+        return f"Carrito de {self.cliente.nombre}"
 
 class ItemCarrito(models.Model):
     carrito = models.ForeignKey(
         Carrito,
-        on_delete=models.CASCADE,
-        related_name="items"
+        on_delete=models.CASCADE
     )
     
     producto = models.ForeignKey(
         Product,
-        on_delete=models.CASCADE,
-        null=True
+        on_delete=models.CASCADE
     )
     
     talla = models.CharField(max_length=50, blank=True, null=True)
