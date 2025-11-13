@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login | Zapatería Hnos. Rodríguez</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { font-family: "Poppins", sans-serif; background-color: #f8f9fa; }
+    .card-login { max-width: 480px; margin: 3.5rem auto; }
+    .brand { font-weight: 700; }
+    footer { background-color: #222; color: #bbb; padding: 2rem 0; margin-top: 4rem }
+    footer a { color: #bbb; text-decoration: none }
+    footer a:hover { color: white }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAVBAR (consistente con home.html) -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <div class="container">
+      <a class="navbar-brand brand" href="/">Zapatería Hnos. Rodríguez</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item"><a class="nav-link" href="/">Inicio</a></li>
+          <li class="nav-item"><a class="nav-link" href="/productos/">Catálogo</a></li>
+          <li class="nav-item"><a class="btn btn-warning ms-2" href="#">Carrito 🛒</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- LOGIN CARD -->
+  <div class="container">
+    <div class="card card-login shadow-sm">
+      <div class="card-body">
+        <h3 class="card-title text-center mb-3">Iniciar sesión</h3>
+
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}" role="alert">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+
+        <form method="post" action="">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="username" class="form-label">Usuario</label>
+            <input id="username" name="username" type="text" class="form-control" required autofocus>
+          </div>
+
+          <div class="mb-3">
+            <label for="password" class="form-label">Contraseña</label>
+            <input id="password" name="password" type="password" class="form-control" required>
+          </div>
+
+          <input type="hidden" name="next" value="{{ request.GET.next }}">
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-dark">Entrar</button>
+          </div>
+        </form>
+
+        <div class="text-center mt-3">
+          <small>¿No tienes cuenta? <a href="#">Regístrate</a></small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER (copiado/adaptado de home.html) -->
+  <footer>
+    <div class="container text-center">
+      <p class="mb-1">© 2025 Zapatería Hnos. Rodríguez - Todos los derechos reservados</p>
+      <p>
+        <a href="#">Facebook</a> |
+        <a href="#">Instagram</a> |
+        <a href="#">WhatsApp</a>
+      </p>
+      <p>Tel: (555) 123-4567 | Email: contacto@zapateriarodriguez.com</p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
