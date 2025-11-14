@@ -8,8 +8,8 @@ WORKDIR /app
 # Instalar dependencias del sistema para MySQL
 RUN apt-get update && apt-get install -y \
     gcc \
-    default-libmysqlclient-dev \
-    pkg-config \
+    postgresql-client \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/
