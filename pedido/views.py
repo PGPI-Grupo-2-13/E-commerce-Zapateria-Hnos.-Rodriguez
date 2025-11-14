@@ -14,6 +14,26 @@ def index_pedido(request):
     plantilla = loader.get_template('pedido.html')
     return render(request, 'pedido.html', contexto)
 
+def listado_pedidos(request):
+    pedidos = Pedido.objects.all().order_by('-fecha_creacion')
+    
+    contexto = {
+        'pedidos': pedidos
+    }
+
+    return render(request, 'listado_pedidos.html', contexto)
+
+def detalle_pedido(request, pedido_id):
+    pedido = Pedido.objects.get(id=pedido_id)
+    items = ItemPedido.objects.filter(pedido=pedido)
+
+    contexto = {
+        'pedido': pedido,
+        'items': items,
+    }
+
+    return render(request, 'pedido_detalle.html', contexto)
+
 def carrito_compra(request):
     carrito = Carrito.objects.first()
     

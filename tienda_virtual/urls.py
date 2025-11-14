@@ -16,10 +16,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from home import views
+from home import views as homeViews
+from pedido import views as pedidoViews
 
 urlpatterns = [
-    path('', views.home),
+    path('', homeViews.home),
     path('admin/', admin.site.urls),
     path('productos/', include('product.urls')),
+    path('pedidos/', pedidoViews.listado_pedidos, name='listado_pedidos'),
+    path('pedidos/<int:pedido_id>/', pedidoViews.detalle_pedido, name='detalle_pedido'),   
 ]
