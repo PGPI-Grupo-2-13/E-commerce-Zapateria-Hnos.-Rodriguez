@@ -47,11 +47,25 @@
           {% endfor %}
         {% endif %}
 
+        {# Mostrar errores del formulario de autenticación si los hay #}
+        {% if form.errors %}
+          <div class="alert alert-danger" role="alert">
+            {% for error in form.non_field_errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+            {% for field in form %}
+              {% for error in field.errors %}
+                <div>{{ field.label }}: {{ error }}</div>
+              {% endfor %}
+            {% endfor %}
+          </div>
+        {% endif %}
+
         <form method="post" action="">
           {% csrf_token %}
           <div class="mb-3">
             <label for="username" class="form-label">Usuario</label>
-            <input id="username" name="username" type="text" class="form-control" required autofocus>
+            <input id="username" name="username" type="text" class="form-control" required autofocus value="{{ request.POST.username|default:'' }}">
           </div>
 
           <div class="mb-3">
