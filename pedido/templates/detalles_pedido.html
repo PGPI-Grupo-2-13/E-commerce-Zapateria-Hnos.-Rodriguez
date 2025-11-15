@@ -65,8 +65,7 @@
                 <p><strong>Impuestos:</strong> {{ pedido.impuestos }} €</p>
                 <p><strong>Descuento:</strong> {{ pedido.descuento }} €</p>
                 <hr>
-                <h5>Total: <strong>{{ pedido.subtotal|add:pedido.coste_entrega|add:pedido.impuestos|floatformat:2 }} €</strong></h5>
-
+                <h5>Total: <strong>{{ total }} €</strong></h5>
             </div>
         </div>
 
@@ -94,7 +93,7 @@
                                 <td>{{ item.talla }}</td>
                                 <td>{{ item.cantidad }}</td>
                                 <td>{{ item.precio_unitario }} €</td>
-                                <td>{{ item.cantidad|mul:item.precio_unitario }} €</td>
+                                <td>{{ item.subtotal_item }} €</td>
                             </tr>
                             {% endfor %}
                         </tbody>
