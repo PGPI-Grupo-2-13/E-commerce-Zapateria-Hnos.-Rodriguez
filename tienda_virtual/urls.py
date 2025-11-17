@@ -25,4 +25,5 @@ urlpatterns = [
     path('productos/', include('product.urls')),
     path('pedidos/', pedidoViews.listado_pedidos, name='listado_pedidos'),
     path('pedidos/<int:pedido_id>/', pedidoViews.detalle_pedido, name='detalle_pedido'),   
+    path('clientes/', include('client.urls')),
 ]
