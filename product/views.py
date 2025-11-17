@@ -42,7 +42,7 @@ def product_list(request):
         'genero_actual': genero,
         'search_query': search,
     }
-    return render(request, 'product/product_list.html', context)
+    return render(request, 'product_list.html', context)
 
 
 def product_detail(request, slug):
@@ -63,21 +63,7 @@ def product_detail(request, slug):
         'product': product,
         'related_products': related_products,
     }
-    return render(request, 'product/product_detail.html', context)
-
-
-def category_list(request):
-    """Lista de categorías"""
-    categorias = Category.objects.all()
-    context = {'categorias': categorias}
-    return render(request, 'product/category_list.html', context)
-
-
-def brand_list(request):
-    """Lista de marcas"""
-    marcas = Brand.objects.all()
-    context = {'marcas': marcas}
-    return render(request, 'product/brand_list.html', context)
+    return render(request, 'product_detail.html', context)
 
 
 def home(request):
@@ -93,4 +79,4 @@ def home(request):
         'productos_destacados': productos_destacados,
         'categorias': categorias,
     }
-    return render(request, 'product/home.html', context)
+    return render(request, 'home.html', context)

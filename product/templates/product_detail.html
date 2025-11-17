@@ -1,0 +1,254 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ product.nombre }} | Zapatería Hnos. Rodríguez</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: "Poppins", sans-serif;
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+        }
+
+        .product-image {
+            border-radius: 0.5rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease;
+            width: 100%;
+            height: 500px;
+            object-fit: cover;
+        }
+
+        .product-image:hover {
+            transform: scale(1.02);
+        }
+
+        .product-info {
+            background-color: #f8f9fa;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+
+        .price-tag {
+            font-size: 2rem;
+            color: #198754;
+        }
+
+        .related-card {
+            transition: 0.2s;
+        }
+
+        .related-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+        .related-card img {
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .section-title {
+            border-bottom: 3px solid #222;
+            display: inline-block;
+            padding-bottom: 0.5rem;
+        }
+
+        .product-info select.form-select-lg {
+            background-color: #f7f7f7; 
+            border: 1px solid #ced4da;
+            border-radius: 0.5rem; 
+            color: #495057;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .product-info select.form-select-lg:hover {
+            border-color: #a9acaf;
+        }
+
+        .product-info select.form-select-lg:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25); 
+        }
+        .stock-low-message {
+            color: #dc3545; 
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">Zapatería Hnos. Rodríguez</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link" href="/">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="#">Catálogo</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">Ofertas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/pedidos">Mis Pedidos</a></li>
+                    <li class="nav-item"><a class="btn btn-warning ms-2" href="#">Carrito 🛒</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="container my-5">
+
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/" class="text-dark">Inicio</a></li>
+                <li class="breadcrumb-item"><a href="#" class="text-dark">Catálogo</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ product.nombre }}</li>
+            </ol>
+        </nav>
+
+        <!-- DETALLE DEL PRODUCTO -->
+        <div class="row g-4">
+
+            <!-- IMAGEN DEL PRODUCTO -->
+            <div class="col-md-6">
+                {% if product.imagenes.all %}
+                <img src="{{ product.imagenes.first.imagen }}" 
+                     class="product-image" 
+                     alt="{{ product.nombre }}"
+                     onerror="this.src='{% static 'img/no-image.png' %}'">
+                {% else %}
+                <img src="{% static 'img/no-image.png' %}" 
+                     class="product-image" 
+                     alt="Sin imagen">
+                {% endif %}
+            </div>
+
+            <!-- INFORMACIÓN DEL PRODUCTO -->
+            <div class="col-md-6">
+                <div class="product-info h-100 d-flex flex-column">
+                    <h1 class="display-5 fw-bold mb-3">{{ product.nombre }}</h1>
+                    
+                    <p class="text-muted fs-5 mb-3">
+                        <strong>Marca:</strong> {{ product.marca.nombre }}
+                    </p>
+
+                    <div class="price-tag fw-bold mb-4">
+                        {{ product.precio }} €
+                    </div>
+
+                    <div class="mb-4">
+                        <h5 class="fw-bold">Descripción</h5>
+                        <p class="text-secondary">{{ product.descripcion }}</p>
+                    </div>
+
+                    <!-- SECCIÓN DE TALLAS (opcional) -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold" for="product-size-select">
+                            Selecciona tu talla
+                        </label>
+                        
+                        <select class="form-select form-select-lg" id="product-size-select" style="max-width: 250px;">
+                            
+                            <option selected disabled>Elige una talla...</option>
+                            
+                            {% for size in product.tallas.all %}
+                                {% if size.stock > 0 %}
+                                    
+                                    <option value="{{ size.talla }}">
+                                        Talla {{ size.talla }}
+                                        
+                                        {% if size.stock < 5 %}
+                                            {# Stock bajo: Mostramos el mensaje de urgencia #}
+                                            <span class="stock-low-message"> (¡Pocas unidades!)</span>
+                                        {% endif %}
+                                    </option>
+                                {% endif %}
+                            {% endfor %}
+                            
+                        </select>
+                        
+                        {% if product.stock == 0 or not product.disponible %}
+                            <p class="text-danger mt-2 fw-bold">Producto agotado o no disponible 😥</p>
+                        {% endif %}
+
+                    </div>
+
+                    <div class="mt-auto">
+                        <a href="#" class="btn btn-warning btn-lg w-100 py-3 fw-bold">
+                            Añadir al carrito 🛒
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- PRODUCTOS RELACIONADOS -->
+        {% if related_products %}
+        <div class="mt-5 pt-4">
+            <h4 class="section-title mb-4">Productos relacionados</h4>
+
+            <div class="row g-4">
+                {% for p in related_products %}
+                <div class="col-lg-3 col-md-4 col-sm-6">
+                    <div class="card h-100 shadow-sm related-card">
+                        {% if p.imagenes.all %}
+                        <img src="{{ p.imagenes.first.imagen }}" 
+                             class="card-img-top" 
+                             alt="{{ p.nombre }}"
+                             onerror="this.src='{% static 'img/no-image.png' %}'">
+                        {% else %}
+                        <img src="{% static 'img/no-image.png' %}" 
+                             class="card-img-top" 
+                             alt="Sin imagen">
+                        {% endif %}
+
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">{{ p.nombre }}</h5>
+                            <p class="text-muted mb-2">{{ p.marca.nombre }}</p>
+                            <p class="fw-bold text-dark mb-3">{{ p.precio }} €</p>
+                            <a href="{% url 'product:product_detail' p.slug %}" 
+                               class="btn btn-dark btn-sm w-100 mt-auto">
+                                Ver producto
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="text-center py-4 bg-dark text-light mt-5">
+        <p class="mb-1">© 2025 Zapatería Hnos. Rodríguez</p>
+        <p>
+            <a href="#" class="text-warning">Facebook</a> |
+            <a href="#" class="text-warning">Instagram</a> |
+            <a href="#" class="text-warning">WhatsApp</a>
+        </p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+
+</html>

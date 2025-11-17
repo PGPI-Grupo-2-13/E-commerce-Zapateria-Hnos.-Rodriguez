@@ -1,16 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from .models import Pedido, ItemPedido, Carrito, ItemCarrito, Cliente
 
-def index_pedido(request):
-    pedidos = Pedido.objects.all()
-    pedido = pedidos.first()
-    items = ItemPedido.objects.filter(pedido=pedido)
-    contexto = {
-        'pedido': pedido,
-        'items': items,
-    }
-    return render(request, 'pedido.html', contexto)
-
 def listado_pedidos(request):
     cliente = Cliente.objects.get(user=request.user)
     
