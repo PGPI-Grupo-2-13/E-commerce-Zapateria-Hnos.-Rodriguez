@@ -65,9 +65,9 @@
         }
 
         .product-info select.form-select-lg {
-            background-color: #f7f7f7; 
+            background-color: #f7f7f7;
             border: 1px solid #ced4da;
-            border-radius: 0.5rem; 
+            border-radius: 0.5rem;
             color: #495057;
             font-weight: 500;
             cursor: pointer;
@@ -80,11 +80,47 @@
 
         .product-info select.form-select-lg:focus {
             border-color: #007bff;
-            box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25); 
+            box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
         }
+
         .stock-low-message {
-            color: #dc3545; 
+            color: #dc3545;
             font-weight: bold;
+        }
+
+        .quantity-selector {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .quantity-selector button {
+            width: 40px;
+            height: 40px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 5px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quantity-selector button:hover {
+            background: #f0f0f0;
+        }
+
+        .quantity-selector input {
+            width: 60px;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            padding: 8px;
+        }
+
+        .offcanvas-cart {
+            width: 12% !important;
         }
     </style>
 </head>
@@ -92,6 +128,7 @@
 <body>
 
     {% include 'sidebar.html' %}
+
     <!-- NAVBAR -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <button class="btn btn-outline-light ms-3" onclick="toggleSidebar()">
@@ -104,11 +141,66 @@
             </button>
             <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
                 <ul class="navbar-nav">
-                    <li class="nav-item"><a class="btn btn-warning ms-2" href="#">Carrito 🛒</a></li>
+                    <li class="nav-item">
+                        <button class="btn btn-warning ms-2" type="button" data-bs-toggle="offcanvas"
+                            data-bs-target="#cartSidebar" aria-controls="cartSidebar">
+                            Carrito 🛒
+                        </button>
+                    </li>
                 </ul>
             </div>
         </div>
     </nav>
+
+    <!-- OFFCANVAS CARRITO -->
+    <div class="offcanvas offcanvas-end offcanvas-cart" tabindex="-1" id="cartSidebar" aria-labelledby="cartSidebarLabel" 
+        data-bs-scroll="true" data-bs-backdrop="false">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="cartSidebarLabel">Mi Carrito</h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            {% if carrito and carrito.itemcarrito_set.exists %}
+            <ul class="list-group">
+                {% for item in carrito.itemcarrito_set.all %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ item.producto.nombre }} (x{{ item.cantidad }})
+                    <span class="fw-bold">${% widthratio item.producto.precio_final 1 item.cantidad %}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            <hr>
+            <p class="fw-bold mb-0">
+                Total: 
+                {% if carrito.itemcarrito_set.exists %}
+                    <script>
+                        let total = 0;
+                        {% for item in carrito.itemcarrito_set.all %}
+                            total += {{ item.producto.precio_final }} * {{ item.cantidad }};
+                        {% endfor %}
+                        document.write(total.toFixed(2) + '€');
+                    </script>
+                {% else %}
+                    0.00€
+                {% endif %}
+            </p>
+            {% else %}
+            <p>Tu carrito está vacío.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- MENSAJES -->
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 
     <!-- CONTENIDO PRINCIPAL -->
     <div class="container my-5">
@@ -117,7 +209,8 @@
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="/" class="text-dark">Inicio</a></li>
-                <li class="breadcrumb-item"><a href="#" class="text-dark">Catálogo</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'product:product_list' %}" class="text-dark">Catálogo</a>
+                </li>
                 <li class="breadcrumb-item active" aria-current="page">{{ product.nombre }}</li>
             </ol>
         </nav>
@@ -128,14 +221,10 @@
             <!-- IMAGEN DEL PRODUCTO -->
             <div class="col-md-6">
                 {% if product.imagenes.all %}
-                <img src="{{ product.imagenes.first.imagen }}" 
-                     class="product-image" 
-                     alt="{{ product.nombre }}"
-                     onerror="this.src='{% static 'img/no-image.png' %}'">
+                <img src="{{ product.imagenes.first.imagen }}" class="product-image" alt="{{ product.nombre }}"
+                    onerror="this.src='https://via.placeholder.com/500x500?text=Sin+Imagen'">
                 {% else %}
-                <img src="{% static 'img/no-image.png' %}" 
-                     class="product-image" 
-                     alt="Sin imagen">
+                <img src="https://via.placeholder.com/500x500?text=Sin+Imagen" class="product-image" alt="Sin imagen">
                 {% endif %}
             </div>
 
@@ -143,57 +232,87 @@
             <div class="col-md-6">
                 <div class="product-info h-100 d-flex flex-column">
                     <h1 class="display-5 fw-bold mb-3">{{ product.nombre }}</h1>
-                    
+
                     <p class="text-muted fs-5 mb-3">
                         <strong>Marca:</strong> {{ product.marca.nombre }}
                     </p>
 
                     <div class="price-tag fw-bold mb-4">
+                        {% if product.oferta %}
+                        <span style="text-decoration: line-through; color: #999; font-size: 1.5rem;">{{ product.precio
+                            }} €</span>
+                        <span style="color: #dc3545;">{{ product.precio_final }} €</span>
+                        <span class="badge bg-danger ms-2">-{{ product.oferta }}%</span>
+                        {% else %}
                         {{ product.precio }} €
+                        {% endif %}
                     </div>
 
                     <div class="mb-4">
                         <h5 class="fw-bold">Descripción</h5>
-                        <p class="text-secondary">{{ product.descripcion }}</p>
+                        <p class="text-secondary">{{ product.descripcion|default:"Sin descripción disponible" }}</p>
                     </div>
 
-                    <!-- SECCIÓN DE TALLAS (opcional) -->
-                    <div class="mb-4">
-                        <label class="form-label fw-bold" for="product-size-select">
-                            Selecciona tu talla
-                        </label>
-                        
-                        <select class="form-select form-select-lg" id="product-size-select" style="max-width: 250px;">
-                            
-                            <option selected disabled>Elige una talla...</option>
-                            
-                            {% for size in product.tallas.all %}
+                    <!-- FORMULARIO AÑADIR AL CARRITO -->
+                    <form method="post" action="{% url 'agregar_al_carrito' product.id %}" id="addToCartForm">
+                        {% csrf_token %}
+
+                        <!-- SECCIÓN DE TALLAS -->
+                        {% if product.tallas.exists %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold" for="product-size-select">
+                                Selecciona tu talla *
+                            </label>
+
+                            <select class="form-select form-select-lg" id="product-size-select" name="talla_id" required
+                                style="max-width: 250px;">
+                                <option value="" selected disabled>Elige una talla...</option>
+
+                                {% for size in product.tallas.all %}
                                 {% if size.stock > 0 %}
-                                    
-                                    <option value="{{ size.talla }}">
-                                        Talla {{ size.talla }}
-                                        
-                                        {% if size.stock < 5 %}
-                                            {# Stock bajo: Mostramos el mensaje de urgencia #}
-                                            <span class="stock-low-message"> (¡Pocas unidades!)</span>
+                                <option value="{{ size.id }}">
+                                    Talla {{ size.talla }}
+                                    {% if size.stock < 5 %}(¡Solo {{ size.stock }} disponibles!){% endif %} </option>
                                         {% endif %}
-                                    </option>
-                                {% endif %}
-                            {% endfor %}
-                            
-                        </select>
-                        
-                        {% if product.stock == 0 or not product.disponible %}
-                            <p class="text-danger mt-2 fw-bold">Producto agotado o no disponible 😥</p>
+                                        {% endfor %}
+                            </select>
+                        </div>
                         {% endif %}
 
-                    </div>
+                        <!-- SELECTOR DE CANTIDAD -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Cantidad</label>
+                            <div class="quantity-selector">
+                                <button type="button" onclick="changeQuantity(-1)">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number" name="cantidad" id="quantityInput" value="1" min="1"
+                                    max="{{ product.stock }}" readonly>
+                                <button type="button" onclick="changeQuantity(1)">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <span class="text-muted ms-2">
+                                    ({{ product.stock }} disponibles)
+                                </span>
+                            </div>
+                        </div>
 
-                    <div class="mt-auto">
-                        <a href="#" class="btn btn-warning btn-lg w-100 py-3 fw-bold">
-                            Añadir al carrito 🛒
-                        </a>
-                    </div>
+                        {% if product.stock > 0 and product.disponible %}
+                        <div class="mt-auto">
+                            <button type="submit" class="btn btn-warning btn-lg w-100 py-3 fw-bold mb-2">
+                                <i class="fas fa-cart-plus"></i> Añadir al carrito
+                            </button>
+                            <button type="submit" name="redirect_to_cart" value="1" class="btn btn-outline-dark w-100">
+                                Comprar ahora
+                            </button>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-danger mt-3">
+                            <i class="fas fa-exclamation-circle"></i>
+                            Producto agotado o no disponible
+                        </div>
+                        {% endif %}
+                    </form>
                 </div>
             </div>
 
@@ -209,22 +328,26 @@
                 <div class="col-lg-3 col-md-4 col-sm-6">
                     <div class="card h-100 shadow-sm related-card">
                         {% if p.imagenes.all %}
-                        <img src="{{ p.imagenes.first.imagen }}" 
-                             class="card-img-top" 
-                             alt="{{ p.nombre }}"
-                             onerror="this.src='{% static 'img/no-image.png' %}'">
+                        <img src="{{ p.imagenes.first.imagen }}" class="card-img-top" alt="{{ p.nombre }}"
+                            onerror="this.src='https://via.placeholder.com/300x200?text={{ p.nombre }}'">
                         {% else %}
-                        <img src="{% static 'img/no-image.png' %}" 
-                             class="card-img-top" 
-                             alt="Sin imagen">
+                        <img src="https://via.placeholder.com/300x200?text={{ p.nombre }}" class="card-img-top"
+                            alt="Sin imagen">
                         {% endif %}
 
                         <div class="card-body d-flex flex-column">
                             <h5 class="card-title">{{ p.nombre }}</h5>
                             <p class="text-muted mb-2">{{ p.marca.nombre }}</p>
-                            <p class="fw-bold text-dark mb-3">{{ p.precio }} €</p>
-                            <a href="{% url 'product:product_detail' p.slug %}" 
-                               class="btn btn-dark btn-sm w-100 mt-auto">
+                            <p class="fw-bold text-dark mb-3">
+                                {% if p.oferta %}
+                                <span style="text-decoration: line-through; color: #999;">{{ p.precio }} €</span>
+                                <span style="color: #dc3545;">{{ p.precio_final }} €</span>
+                                {% else %}
+                                {{ p.precio }} €
+                                {% endif %}
+                            </p>
+                            <a href="{% url 'product:product_detail' p.slug %}"
+                                class="btn btn-dark btn-sm w-100 mt-auto">
                                 Ver producto
                             </a>
                         </div>
@@ -248,6 +371,35 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const cartSidebar = new bootstrap.Offcanvas(document.getElementById('cartSidebar'), { backdrop: false });
+        function changeQuantity(delta) {
+            const input = document.getElementById('quantityInput');
+            let currentValue = parseInt(input.value);
+            let newValue = currentValue + delta;
+
+            const min = parseInt(input.min);
+            const max = parseInt(input.max);
+
+            if (newValue >= min && newValue <= max) {
+                input.value = newValue;
+            }
+        }
+
+        // Validar talla antes de enviar (si aplica)
+        document.getElementById('addToCartForm').addEventListener('submit', function (e) {
+            const tallaSelect = document.getElementById('product-size-select');
+            if (tallaSelect && !tallaSelect.value) {
+                e.preventDefault();
+                alert('Por favor, selecciona una talla');
+                tallaSelect.focus();
+            }
+        });
+
+        document.getElementById('openCartBtn').addEventListener('click', function () {
+            cartSidebar.show();
+        });
+    </script>
 
 </body>
 

@@ -23,7 +23,14 @@ urlpatterns = [
     path('', homeViews.home, name="home"),
     path('admin/', admin.site.urls),
     path('productos/', include('product.urls', namespace='product')),
-    path('pedidos/', pedidoViews.listado_pedidos, name='pedidos'),
-    path('pedidos/<int:pedido_id>/', pedidoViews.detalle_pedido, name='detalle_pedido'),   
     path('clientes/', include('client.urls')),
+    
+    path('carrito/', pedidoViews.carrito_compra, name='carrito_compra'),  # ← La mantuve
+    path('carrito/agregar/<int:producto_id>/', pedidoViews.agregar_al_carrito, name='agregar_al_carrito'),  # ← Nueva
+    path('carrito/actualizar/<int:item_id>/', pedidoViews.actualizar_cantidad_carrito, name='actualizar_cantidad_carrito'),  # ← Nueva
+    path('carrito/eliminar/<int:item_id>/', pedidoViews.eliminar_del_carrito, name='eliminar_del_carrito'),  # ← Nueva
+    path('carrito/vaciar/', pedidoViews.vaciar_carrito, name='vaciar_carrito'),  # ← Nueva
+    
+    path('pedidos/', pedidoViews.listado_pedidos, name='pedidos'),
+    path('pedidos/<int:pedido_id>/', pedidoViews.detalle_pedido, name='detalle_pedido'),
 ]

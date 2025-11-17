@@ -2,6 +2,7 @@
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
+from decimal import Decimal
 
 
 class Category(models.Model):
@@ -79,9 +80,9 @@ class Product(models.Model):
 
     def precio_final(self):
         if self.oferta:
-            descuento = (self.oferta / 100) * float(self.precio)
-            return float(self.precio) - descuento
-        return float(self.precio)
+            descuento = (self.oferta / Decimal('100')) * self.precio
+            return (self.precio - descuento).quantize(Decimal('0.01'))
+        return self.precio
 
     def imagen_principal(self):
         img = self.imagenes.filter(es_principal=True).first()
