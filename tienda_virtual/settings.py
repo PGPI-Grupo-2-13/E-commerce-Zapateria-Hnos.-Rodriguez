@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'pedido',
     'product',
     'client',
+    'seeder_flag',
 ]
 
 MIDDLEWARE = [
