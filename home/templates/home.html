@@ -65,7 +65,12 @@
                     <li class="nav-item"><a class="nav-link" href="/pedidos">Pedidos</a></li>
                     <li class="nav-item"><a class="nav-link" href="#">Contacto</a></li>
                     {% if user.is_authenticated %}
-                        <li class="nav-item"><a class="nav-link" href="{% url 'client-logout' %}">Cerrar sesión</a></li>
+                        <li class="nav-item">
+                            <form method="post" action="{% url 'client-logout' %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="nav-link">Cerrar sesión</button>
+                            </form>
+                        </li>
                     {% else %}
                         <li class="nav-item"><a class="nav-link" href="{% url 'client-login' %}">Iniciar sesión</a></li>
                     {% endif %}
