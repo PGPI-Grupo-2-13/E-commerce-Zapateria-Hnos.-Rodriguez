@@ -20,10 +20,10 @@ from home import views as homeViews
 from pedido import views as pedidoViews
 
 urlpatterns = [
-    path('', homeViews.home),
+    path('', homeViews.home, name="home"),
     path('admin/', admin.site.urls),
     path('productos/', include('product.urls', namespace='product')),
-    path('pedidos/', pedidoViews.listado_pedidos, name='listado_pedidos'),
+    path('pedidos/', pedidoViews.listado_pedidos, name='pedidos'),
     path('pedidos/<int:pedido_id>/', pedidoViews.detalle_pedido, name='detalle_pedido'),   
     path('clientes/', include('client.urls')),
 ]
