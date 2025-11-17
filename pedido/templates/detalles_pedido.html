@@ -28,6 +28,11 @@
         .offcanvas-cart {
             width: 12% !important;
         }
+
+        body.offcanvas-open {
+            overflow: auto !important;
+            padding-right: 0 !important;
+        }
     </style>
 </head>
 
@@ -58,7 +63,8 @@
     </nav>
 
     <!-- OFFCANVAS CARRITO -->
-    <div class="offcanvas offcanvas-end offcanvas-cart" tabindex="-1" id="cartSidebar" aria-labelledby="cartSidebarLabel">
+    <div class="offcanvas offcanvas-end offcanvas-cart" tabindex="-1" id="cartSidebar" aria-labelledby="cartSidebarLabel" 
+        data-bs-scroll="true" data-bs-backdrop="false">
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="cartSidebarLabel">Mi Carrito</h5>
             <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
@@ -69,13 +75,25 @@
                 {% for item in carrito.itemcarrito_set.all %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     {{ item.producto.nombre }} (x{{ item.cantidad }})
-                    <span>${{ item.subtotal }}</span>
+                    <span class="fw-bold">${% widthratio item.producto.precio_final 1 item.cantidad %}</span>
                 </li>
                 {% endfor %}
             </ul>
             <hr>
-            <p class="fw-bold">Total: ${{ carrito.total }}</p>
-            <a href="{% url 'checkout' %}" class="btn btn-dark w-100">Proceder al Pago</a>
+            <p class="fw-bold mb-0">
+                Total: 
+                {% if carrito.itemcarrito_set.exists %}
+                    <script>
+                        let total = 0;
+                        {% for item in carrito.itemcarrito_set.all %}
+                            total += {{ item.producto.precio_final }} * {{ item.cantidad }};
+                        {% endfor %}
+                        document.write(total.toFixed(2) + '€');
+                    </script>
+                {% else %}
+                    0.00€
+                {% endif %}
+            </p>
             {% else %}
             <p>Tu carrito está vacío.</p>
             {% endif %}
@@ -149,9 +167,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const cartSidebar = new bootstrap.Offcanvas(document.getElementById('cartSidebar'), {backdrop: false});
+        const cartSidebar = new bootstrap.Offcanvas(document.getElementById('cartSidebar'), { backdrop: false });
 
-        document.getElementById('openCartBtn').addEventListener('click', function() {
+        document.getElementById('openCartBtn').addEventListener('click', function () {
             cartSidebar.show();
         });
     </script>
