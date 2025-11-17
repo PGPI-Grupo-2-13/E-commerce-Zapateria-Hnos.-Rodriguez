@@ -24,6 +24,10 @@
             object-fit: cover;
             border-radius: 8px;
         }
+
+        .offcanvas-cart {
+            width: 12% !important;
+        }
     </style>
 </head>
 
@@ -42,11 +46,41 @@
             </button>
             <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
                 <ul class="navbar-nav">
-                    <li class="nav-item"><a class="btn btn-warning ms-2" href="#">Carrito 🛒</a></li>
+                    <li class="nav-item">
+                        <button class="btn btn-warning ms-2" type="button" data-bs-toggle="offcanvas"
+                            data-bs-target="#cartSidebar" aria-controls="cartSidebar">
+                            Carrito 🛒
+                        </button>
+                    </li>
                 </ul>
             </div>
         </div>
     </nav>
+
+    <!-- OFFCANVAS CARRITO -->
+    <div class="offcanvas offcanvas-end offcanvas-cart" tabindex="-1" id="cartSidebar" aria-labelledby="cartSidebarLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="cartSidebarLabel">Mi Carrito</h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            {% if carrito and carrito.itemcarrito_set.exists %}
+            <ul class="list-group">
+                {% for item in carrito.itemcarrito_set.all %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ item.producto.nombre }} (x{{ item.cantidad }})
+                    <span>${{ item.subtotal }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            <hr>
+            <p class="fw-bold">Total: ${{ carrito.total }}</p>
+            <a href="{% url 'checkout' %}" class="btn btn-dark w-100">Proceder al Pago</a>
+            {% else %}
+            <p>Tu carrito está vacío.</p>
+            {% endif %}
+        </div>
+    </div>
 
     <!-- DETALLE -->
     <div class="container my-5">
@@ -114,6 +148,13 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const cartSidebar = new bootstrap.Offcanvas(document.getElementById('cartSidebar'), {backdrop: false});
+
+        document.getElementById('openCartBtn').addEventListener('click', function() {
+            cartSidebar.show();
+        });
+    </script>
 
 </body>
 
