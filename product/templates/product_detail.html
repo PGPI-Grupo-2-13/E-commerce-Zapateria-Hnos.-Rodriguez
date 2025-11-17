@@ -62,6 +62,29 @@
             display: inline-block;
             padding-bottom: 0.5rem;
         }
+
+        .product-info select.form-select-lg {
+            background-color: #f7f7f7; 
+            border: 1px solid #ced4da;
+            border-radius: 0.5rem; 
+            color: #495057;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .product-info select.form-select-lg:hover {
+            border-color: #a9acaf;
+        }
+
+        .product-info select.form-select-lg:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25); 
+        }
+        .stock-low-message {
+            color: #dc3545; 
+            font-weight: bold;
+        }
     </style>
 </head>
 
@@ -105,9 +128,10 @@
             <!-- IMAGEN DEL PRODUCTO -->
             <div class="col-md-6">
                 {% if product.imagenes.all %}
-                <img src="{{ product.imagenes.first.imagen.url }}" 
+                <img src="{{ product.imagenes.first.imagen }}" 
                      class="product-image" 
-                     alt="{{ product.nombre }}">
+                     alt="{{ product.nombre }}"
+                     onerror="this.src='{% static 'img/no-image.png' %}'">
                 {% else %}
                 <img src="{% static 'img/no-image.png' %}" 
                      class="product-image" 
@@ -135,19 +159,34 @@
 
                     <!-- SECCIÓN DE TALLAS (opcional) -->
                     <div class="mb-4">
-                        <label class="form-label fw-bold">Selecciona tu talla</label>
-                        <select class="form-select" style="max-width: 200px;">
-                            <option selected>Elige una talla...</option>
-                            <option value="36">36</option>
-                            <option value="37">37</option>
-                            <option value="38">38</option>
-                            <option value="39">39</option>
-                            <option value="40">40</option>
-                            <option value="41">41</option>
-                            <option value="42">42</option>
-                            <option value="43">43</option>
-                            <option value="44">44</option>
+                        <label class="form-label fw-bold" for="product-size-select">
+                            Selecciona tu talla
+                        </label>
+                        
+                        <select class="form-select form-select-lg" id="product-size-select" style="max-width: 250px;">
+                            
+                            <option selected disabled>Elige una talla...</option>
+                            
+                            {% for size in product.tallas.all %}
+                                {% if size.stock > 0 %}
+                                    
+                                    <option value="{{ size.talla }}">
+                                        Talla {{ size.talla }}
+                                        
+                                        {% if size.stock < 5 %}
+                                            {# Stock bajo: Mostramos el mensaje de urgencia #}
+                                            <span class="stock-low-message"> (¡Pocas unidades!)</span>
+                                        {% endif %}
+                                    </option>
+                                {% endif %}
+                            {% endfor %}
+                            
                         </select>
+                        
+                        {% if product.stock == 0 or not product.disponible %}
+                            <p class="text-danger mt-2 fw-bold">Producto agotado o no disponible 😥</p>
+                        {% endif %}
+
                     </div>
 
                     <div class="mt-auto">
@@ -170,10 +209,10 @@
                 <div class="col-lg-3 col-md-4 col-sm-6">
                     <div class="card h-100 shadow-sm related-card">
                         {% if p.imagenes.all %}
-                        <img src="{{ p.imagenes.first.imagen.url }}" 
+                        <img src="{{ p.imagenes.first.imagen }}" 
                              class="card-img-top" 
                              alt="{{ p.nombre }}"
-                             onerror=this.src="{% static 'img/no-image.png' %}">
+                             onerror="this.src='{% static 'img/no-image.png' %}'">
                         {% else %}
                         <img src="{% static 'img/no-image.png' %}" 
                              class="card-img-top" 

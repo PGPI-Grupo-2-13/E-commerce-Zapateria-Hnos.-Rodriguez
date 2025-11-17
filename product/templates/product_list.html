@@ -89,7 +89,7 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label fw-bold">Buscar</label>
-                    <input type="text" name="search" class="form-control" placeholder="Buscar productos..." value="{{ search_query }}">
+                    <input type="text" name="search" class="form-control" placeholder="Buscar productos..." value="{{ search_query|default:'' }}">
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button class="btn btn-dark w-100" type="submit">Aplicar filtros</button>
@@ -103,9 +103,16 @@
             <div class="col-lg-3 col-md-4 col-sm-6">
                 <div class="card h-100 shadow-sm product-card">
                     {% if product.imagenes.all %}
-                    <img src="{{ product.imagenes.first.imagen.url }}" class="card-img-top" style="height:220px; object-fit:cover;" alt="{{ product.nombre }}">
+                    <img src="{{ product.imagenes.first.imagen }}" 
+                         class="card-img-top" 
+                         style="height:220px; object-fit:cover;" 
+                         alt="{{ product.nombre }}"
+                         onerror="this.src='{% static 'img/no-image.png' %}'">
                     {% else %}
-                    <img src="{% static 'img/no-image.png' %}" class="card-img-top" style="height:220px; object-fit:cover;" alt="Sin imagen">
+                    <img src="{% static 'img/no-image.png' %}" 
+                         class="card-img-top" 
+                         style="height:220px; object-fit:cover;" 
+                         alt="Sin imagen">
                     {% endif %}
                     <div class="card-body d-flex flex-column">
                         <h5 class="card-title">{{ product.nombre }}</h5>

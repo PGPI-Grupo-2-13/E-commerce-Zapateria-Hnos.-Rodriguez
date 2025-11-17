@@ -1,16 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from .models import Pedido, ItemPedido, Carrito, ItemCarrito
 
-def index_pedido(request):
-    pedidos = Pedido.objects.all()
-    pedido = pedidos.first()
-    items = ItemPedido.objects.filter(pedido=pedido)
-    contexto = {
-        'pedido': pedido,
-        'items': items,
-    }
-    return render(request, 'pedido.html', contexto)
-
 def listado_pedidos(request):
     pedidos = Pedido.objects.filter(cliente=request.user).order_by('-fecha_creacion')
     
@@ -24,7 +14,6 @@ def detalle_pedido(request, pedido_id):
 
     items = ItemPedido.objects.filter(pedido=pedido)
 
-    # 🔥 Calcular el subtotal de cada item en Python (evita usar filtros mul)
     for item in items:
         item.subtotal_item = item.cantidad * item.precio_unitario
 
