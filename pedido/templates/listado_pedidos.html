@@ -31,28 +31,20 @@
             transform: translateY(-3px);
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
         }
-
-        .offcanvas-cart {
-            width: 12% !important;
-        }
-
-        body.offcanvas-open {
-            overflow: auto !important;
-            padding-right: 0 !important;
-        }
     </style>
 </head>
 
 <body>
 
     {% include 'sidebar.html' %}
+    {% include 'sidebar_cart.html' %}
     <!-- NAVBAR -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <button class="btn btn-outline-light ms-3" onclick="toggleSidebar()">
             <i class="fas fa-bars"></i>
         </button>
         <div class="container">
-            <a class="navbar-brand" href="#">Zapatería Hnos. Rodríguez</a>
+            <a class="navbar-brand" href="/">Zapatería Hnos. Rodríguez</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -68,44 +60,6 @@
             </div>
         </div>
     </nav>
-
-    <!-- OFFCANVAS CARRITO -->
-    <div class="offcanvas offcanvas-end offcanvas-cart" tabindex="-1" id="cartSidebar" aria-labelledby="cartSidebarLabel" 
-        data-bs-scroll="true" data-bs-backdrop="false">
-        <div class="offcanvas-header">
-            <h5 class="offcanvas-title" id="cartSidebarLabel">Mi Carrito</h5>
-            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
-        </div>
-        <div class="offcanvas-body">
-            {% if carrito and carrito.itemcarrito_set.exists %}
-            <ul class="list-group">
-                {% for item in carrito.itemcarrito_set.all %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    {{ item.producto.nombre }} (x{{ item.cantidad }})
-                    <span class="fw-bold">${% widthratio item.producto.precio_final 1 item.cantidad %}</span>
-                </li>
-                {% endfor %}
-            </ul>
-            <hr>
-            <p class="fw-bold mb-0">
-                Total: 
-                {% if carrito.itemcarrito_set.exists %}
-                    <script>
-                        let total = 0;
-                        {% for item in carrito.itemcarrito_set.all %}
-                            total += {{ item.producto.precio_final }} * {{ item.cantidad }};
-                        {% endfor %}
-                        document.write(total.toFixed(2) + '€');
-                    </script>
-                {% else %}
-                    0.00€
-                {% endif %}
-            </p>
-            {% else %}
-            <p>Tu carrito está vacío.</p>
-            {% endif %}
-        </div>
-    </div>
 
     <!-- CONTENIDO -->
     <div class="container my-5">

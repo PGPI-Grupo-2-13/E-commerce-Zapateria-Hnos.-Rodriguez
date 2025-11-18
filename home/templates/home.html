@@ -13,12 +13,11 @@
             font-family: "Poppins", sans-serif;
         }
 
-        .navbar-brand {
-            font-weight: bold;
-        }
-
+        /* --- ESTILOS GENERALES --- */
+        .navbar-brand { font-weight: bold; }
+        
         .hero {
-            background: url('https://marfranc.com/img/cms/2024-08-23-magazine-02.png') center/cover no-repeat;
+            background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://marfranc.com/img/cms/2024-08-23-magazine-02.png') center/cover no-repeat;
             height: 60vh;
             color: white;
             display: flex;
@@ -39,167 +38,102 @@
             padding: 2rem 0;
         }
 
-        footer a {
-            color: #bbb;
-            text-decoration: none;
-        }
+        footer a { color: #bbb; text-decoration: none; }
+        footer a:hover { color: white; }
 
-        footer a:hover {
-            color: white;
-        }
-
-        .offcanvas-cart {
-            width: 12% !important;
-        }
-
-        body.offcanvas-open {
-            overflow: auto !important;
-            padding-right: 0 !important;
-        }
     </style>
 </head>
 
 <body>
     {% include 'sidebar.html' %}
+    {% include 'sidebar_cart.html' %}
 
-    <!-- NAVBAR -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-        <button class="btn btn-outline-light ms-3" onclick="toggleSidebar()">
-            <i class="fas fa-bars"></i>
-        </button>
-        <div class="container">
-            <a class="navbar-brand" href="#">Zapatería Hnos. Rodríguez</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
+        <div class="container-fluid">
+            <button class="btn btn-outline-light ms-2 me-3" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
             </button>
-            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <button class="btn btn-warning ms-2" type="button" data-bs-toggle="offcanvas"
-                            data-bs-target="#cartSidebar" aria-controls="cartSidebar">
-                            Carrito 🛒
-                        </button>
-                    </li>
-                </ul>
+
+            <a class="navbar-brand" href="/">Zapatería Hnos. Rodríguez</a>
+            
+            <div class="ms-auto d-flex align-items-center">
+                <button class="btn btn-warning position-relative me-3" type="button" data-bs-toggle="offcanvas"
+                    data-bs-target="#cartSidebar" aria-controls="cartSidebar">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="d-none d-md-inline ms-1">Carrito</span>
+                    {% if carrito.itemcarrito_set.count > 0 %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        {{ carrito.itemcarrito_set.count }}
+                    </span>
+                    {% endif %}
+                </button>
             </div>
         </div>
     </nav>
 
-    <!-- OFFCANVAS CARRITO -->
-    <div class="offcanvas offcanvas-end offcanvas-cart" tabindex="-1" id="cartSidebar" aria-labelledby="cartSidebarLabel" 
-        data-bs-scroll="true" data-bs-backdrop="false">
-        <div class="offcanvas-header">
-            <h5 class="offcanvas-title" id="cartSidebarLabel">Mi Carrito</h5>
-            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
-        </div>
-        <div class="offcanvas-body">
-            {% if carrito and carrito.itemcarrito_set.exists %}
-            <ul class="list-group">
-                {% for item in carrito.itemcarrito_set.all %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    {{ item.producto.nombre }} (x{{ item.cantidad }})
-                    <span class="fw-bold">${% widthratio item.producto.precio_final 1 item.cantidad %}</span>
-                </li>
-                {% endfor %}
-            </ul>
-            <hr>
-            <p class="fw-bold mb-0">
-                Total: 
-                {% if carrito.itemcarrito_set.exists %}
-                    <script>
-                        let total = 0;
-                        {% for item in carrito.itemcarrito_set.all %}
-                            total += {{ item.producto.precio_final }} * {{ item.cantidad }};
-                        {% endfor %}
-                        document.write(total.toFixed(2) + '€');
-                    </script>
-                {% else %}
-                    0.00€
-                {% endif %}
-            </p>
-            {% else %}
-            <p>Tu carrito está vacío.</p>
-            {% endif %}
-        </div>
-    </div>
+    
 
-    <!-- HERO -->
     <section class="hero text-center">
-        <h1 class="display-4">Bienvenidos a Zapatería Hnos. Rodríguez</h1>
-        <p class="lead">Calzado de calidad al mejor precio</p>
-        <a href="#" class="btn btn-warning btn-lg mt-3">Ver catálogo</a>
+        <h1 class="display-4 fw-bold">ZAPATERÍA HNOS. RODRÍGUEZ</h1>
+        <p class="lead fs-4">Calzado de calidad al mejor precio</p>
+        <a href="{% url 'product:product_list' %}" class="btn btn-warning btn-lg mt-3 fw-bold px-5 shadow">Ver Catálogo</a>
     </section>
 
-    <!-- PRODUCTOS DESTACADOS -->
     <section class="container my-5">
-        <div class="text-center mb-4">
-            <h2>Productos Destacados</h2>
-            <p>Explora los modelos más populares de esta temporada</p>
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Productos Destacados</h2>
+            <div style="width: 60px; height: 3px; background: #ffc107; margin: 10px auto;"></div>
+            <p class="text-muted">Explora los modelos más populares de esta temporada</p>
         </div>
 
         <div class="row g-4">
-            <!-- Producto -->
             <div class="col-md-4">
-                <div class="card product-card shadow-sm">
-                    <img src="https://media.catchalot.es/91090-pdt_640/zapatos-clasicos-para-hombre-fluchos-f1980.jpg"
-                        alt="Zapato 1">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Zapato Casual</h5>
-                        <p class="card-text text-muted">$899 EUR</p>
-                        <a href="#" class="btn btn-dark">Agregar al carrito</a>
+                <div class="card product-card h-100 shadow-sm border-0">
+                    <img src="https://media.catchalot.es/91090-pdt_640/zapatos-clasicos-para-hombre-fluchos-f1980.jpg" alt="Zapato 1">
+                    <div class="card-body text-center d-flex flex-column">
+                        <h5 class="card-title fw-bold">Zapato Casual</h5>
+                        <p class="card-text text-muted mb-3">$899 EUR</p>
+                        <a href="#" class="btn btn-dark mt-auto">Agregar al carrito</a>
                     </div>
                 </div>
             </div>
 
-            <!-- Producto -->
             <div class="col-md-4">
-                <div class="card product-card shadow-sm">
-                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTnUYC5y6ktoK1hJHWQfoYrXrPHkQL7qTuHpg&s"
-                        class="card-img-top" alt="Zapato 2">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Mocasines</h5>
-                        <p class="card-text text-muted">$749 EUR</p>
-                        <a href="#" class="btn btn-dark">Agregar al carrito</a>
+                <div class="card product-card h-100 shadow-sm border-0">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTnUYC5y6ktoK1hJHWQfoYrXrPHkQL7qTuHpg&s" class="card-img-top" alt="Zapato 2">
+                    <div class="card-body text-center d-flex flex-column">
+                        <h5 class="card-title fw-bold">Mocasines</h5>
+                        <p class="card-text text-muted mb-3">$749 EUR</p>
+                        <a href="#" class="btn btn-dark mt-auto">Agregar al carrito</a>
                     </div>
                 </div>
             </div>
 
-            <!-- Producto -->
             <div class="col-md-4">
-                <div class="card product-card shadow-sm">
-                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0KukTPLe2Jha057JV8H3a6SofTuqwQQ0E2g&s"
-                        class="card-img-top" alt="Zapato 3">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Zapato Formal</h5>
-                        <p class="card-text text-muted">$1,099 EUR</p>
-                        <a href="#" class="btn btn-dark">Agregar al carrito</a>
+                <div class="card product-card h-100 shadow-sm border-0">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0KukTPLe2Jha057JV8H3a6SofTuqwQQ0E2g&s" class="card-img-top" alt="Zapato 3">
+                    <div class="card-body text-center d-flex flex-column">
+                        <h5 class="card-title fw-bold">Zapato Formal</h5>
+                        <p class="card-text text-muted mb-3">$1,099 EUR</p>
+                        <a href="#" class="btn btn-dark mt-auto">Agregar al carrito</a>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- FOOTER -->
     <footer>
         <div class="container text-center">
-            <p class="mb-1">© 2025 Zapatería Hnos. Rodríguez - Todos los derechos reservados</p>
-            <p>
-                <a href="#">Facebook</a> |
-                <a href="#">Instagram</a> |
-                <a href="#">WhatsApp</a>
-            </p>
-            <p>Tel: (555) 123-4567 | Email: contacto@zapateriarodriguez.com</p>
+            <p class="mb-2 text-white">© 2025 Zapatería Hnos. Rodríguez</p>
+            <div class="mb-3">
+                <a href="#" class="mx-2"><i class="fab fa-facebook fa-lg"></i></a>
+                <a href="#" class="mx-2"><i class="fab fa-instagram fa-lg"></i></a>
+                <a href="#" class="mx-2"><i class="fab fa-whatsapp fa-lg"></i></a>
+            </div>
+            <small class="text-muted">Tel: (555) 123-4567 | Email: contacto@zapateriarodriguez.com</small>
         </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        const cartSidebar = new bootstrap.Offcanvas(document.getElementById('cartSidebar'), { backdrop: false });
-
-        document.getElementById('openCartBtn').addEventListener('click', function () {
-            cartSidebar.show();
-        });
-    </script>
 </body>
-
 </html>

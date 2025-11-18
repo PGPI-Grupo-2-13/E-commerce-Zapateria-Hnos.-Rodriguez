@@ -1,0 +1,133 @@
+{% load static %}
+
+<style>
+    .offcanvas-cart {
+        background-color: #1f1f1f;
+        color: #fff;
+        width: 400px !important;
+        border-left: 1px solid #333;
+        display: flex;
+        flex-direction: column;
+    }
+
+    @media (max-width: 576px) {
+        .offcanvas-cart { width: 100% !important; }
+    }
+
+    .offcanvas-header { border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .offcanvas-title { font-weight: bold; letter-spacing: 1px; }
+    
+    /* Aquí tenías un error de sintaxis en tu código original */
+    .btn-close-white { filter: invert(1); }
+
+    .cart-items-container {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 20px;
+    }
+
+    /* Scrollbar oscuro */
+    .cart-items-container::-webkit-scrollbar { width: 6px; }
+    .cart-items-container::-webkit-scrollbar-track { background: #1f1f1f; }
+    .cart-items-container::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+    /* Item del carrito */
+    .cart-item {
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 15px;
+        transition: 0.2s;
+    }
+    .cart-item:hover { background: rgba(255, 255, 255, 0.1); }
+
+    .cart-item-img {
+        width: 60px; height: 60px;
+        border-radius: 8px; object-fit: cover;
+        margin-right: 15px; background-color: #fff;
+    }
+
+    .cart-item-details { flex-grow: 1; line-height: 1.2; }
+    .cart-item-title { font-size: 14px; font-weight: 600; display: block; margin-bottom: 4px;}
+    .cart-item-price { font-size: 14px; color: #ffc107; font-weight: bold; }
+    .cart-item-qty { font-size: 12px; color: #ccc; }
+
+    /* Footer del carrito */
+    .cart-footer {
+        padding: 20px;
+        background: #1f1f1f;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 -5px 15px rgba(0,0,0,0.2);
+    }
+    .total-row {
+        display: flex; justify-content: space-between;
+        font-size: 18px; font-weight: bold; margin-bottom: 15px;
+    }
+</style>
+
+<div class="offcanvas offcanvas-end offcanvas-cart shadow" tabindex="-1" id="cartSidebar" aria-labelledby="cartSidebarLabel" 
+    data-bs-scroll="true" data-bs-backdrop="true">
+    
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="cartSidebarLabel">
+            <i class="fas fa-shopping-bag me-2 text-warning"></i> Mi Compra
+        </h5>
+        <button type="button" class="btn-close btn-close-white text-reset" data-bs-dismiss="offcanvas"></button>
+    </div>
+
+    <div class="cart-items-container">
+        {% if carrito and carrito.itemcarrito_set.exists %}
+            {% for item in carrito.itemcarrito_set.all %}
+            <div class="cart-item">
+                <img src="https://cdn-icons-png.flaticon.com/512/2589/2589903.png" class="cart-item-img" alt="Zapato">
+                
+                <div class="cart-item-details">
+                    <span class="cart-item-title">{{ item.producto.nombre }}</span>
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <span class="cart-item-qty">Cant: {{ item.cantidad }}</span>
+                        <span class="cart-item-price">${% widthratio item.producto.precio_final 1 item.cantidad %}</span>
+                    </div>
+                </div>
+                
+                <button class="btn btn-sm text-danger ms-2">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center mt-5 text-secondary">
+                <i class="fas fa-shopping-cart fa-3x mb-3 opacity-25"></i>
+                <p>Tu carrito está vacío.</p>
+                <button class="btn btn-outline-light btn-sm mt-2" data-bs-dismiss="offcanvas">Seguir comprando</button>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="cart-footer">
+        <div class="total-row">
+            <span>Total Estimado</span>
+            <span class="text-warning">
+                {% if carrito.itemcarrito_set.exists %}
+                    <script>
+                        let total = 0;
+                        {% for item in carrito.itemcarrito_set.all %}
+                            total += {{ item.producto.precio_final }} * {{ item.cantidad }};
+                        {% endfor %}
+                        document.write('$' + total.toFixed(2));
+                    </script>
+                {% else %}
+                    $0.00
+                {% endif %}
+            </span>
+        </div>
+        {% if carrito.itemcarrito_set.exists %}
+            <a href="#" class="btn btn-warning w-100 fw-bold py-2">
+                Finalizar Compra <i class="fas fa-arrow-right ms-2"></i>
+            </a>
+        {% else %}
+            <button class="btn btn-secondary w-100 py-2" disabled>Carrito vacío</button>
+        {% endif %}
+    </div>
+</div>
