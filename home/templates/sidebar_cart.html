@@ -292,25 +292,18 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        // --- Inicialización del Sidebar ---
+        const cartSidebarEl = document.getElementById('cartSidebar');
+        
+        // Abrir sidebar si la URL lo pide (útil para fallbacks)
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('cart_open')) {
-            const cartSidebar = new bootstrap.Offcanvas(document.getElementById('cartSidebar'));
-            cartSidebar.show();
-        }
-    });
-    document.addEventListener("DOMContentLoaded", function() {
-        const cartSidebar = document.getElementById('cartSidebar');
-
-        // 1. Mostrar/Ocultar el Sidebar (manteniendo tu lógica)
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('cart_open')) {
-            const offcanvas = new bootstrap.Offcanvas(cartSidebar);
+            const offcanvas = new bootstrap.Offcanvas(cartSidebarEl);
             offcanvas.show();
         }
 
-        // --- FUNCIONES AJAX ---
+        // --- LOGICA AJAX ---
 
-        // Función auxiliar para obtener el token CSRF
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -327,21 +320,21 @@
         }
         const csrftoken = getCookie('csrftoken');
 
-
-        // Función que maneja la petición AJAX y actualiza el carrito
+        // 1. Función para enviar la petición al servidor
         async function sendCartUpdate(form) {
             const formData = new FormData(form);
             const url = form.action;
             
-            // Muestra un indicador de carga (opcional)
-            cartSidebar.classList.add('loading'); 
+            // Efecto visual de carga
+            cartSidebarEl.style.opacity = '0.6';
+            cartSidebarEl.style.pointerEvents = 'none';
 
             try {
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': csrftoken,
-                        'X-Requested-With': 'XMLHttpRequest' // Para identificar la petición como AJAX en la vista
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
                     body: formData
                 });
@@ -349,123 +342,96 @@
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    // Si la actualización/eliminación fue exitosa
-                    
-                    // Lógica para actualizar el DOM: 
-                    // Lo más simple es recargar el contenido completo del sidebar
-                    // con una nueva llamada AJAX que devuelva el HTML actualizado.
-                    
-                    // --- Solución simple: Recargar todo el carrito por AJAX (Recomendado) ---
-                    // Suponiendo que tienes una URL para obtener el HTML del carrito (ej. un endpoint llamado 'cart_fragment')
-                    
-                    await updateCartFragment(); // Llama a una función que recarga el HTML
-                    
-                    // --- Fin Solución simple ---
-                    
-                    // NOTA: Para una actualización más fina, necesitarías que tu vista
-                    // devuelva el nuevo precio total y la cantidad de ítems, y actualizar
-                    // solo esos elementos en el DOM.
-                    
+                    // Si todo salió bien, actualizamos la interfaz visualmente
+                    await updateCartUI(); 
                 } else {
-                    // Si hubo error (ej. stock insuficiente)
-                    const message = data.message || 'Error desconocido al actualizar el carrito.';
-                    alert(message);
-                    
-                    // Si es un error de stock, corrige la cantidad en el input
-                    if (data.max_qty !== undefined) {
-                        const qtyInput = form.querySelector('.qty-input');
-                        if (qtyInput) {
-                            qtyInput.value = data.max_qty;
-                        }
+                    alert(data.message || 'Error al actualizar.');
+                    // Si falló por stock, corregimos el input
+                    if(data.max_qty) {
+                        const input = form.querySelector('input[name="cantidad"]');
+                        if(input) input.value = data.max_qty;
                     }
                 }
             } catch (error) {
-                console.error('Error:', error);
-                alert('Ocurrió un error de conexión al actualizar el carrito.');
+                console.error('Error de conexión:', error);
             } finally {
-                cartSidebar.classList.remove('loading');
+                // Quitar efecto de carga
+                cartSidebarEl.style.opacity = '1';
+                cartSidebarEl.style.pointerEvents = 'auto';
             }
         }
-        
-        
-        // Función para recargar el fragmento HTML del carrito (NECESITAS UNA VISTA ADICIONAL PARA ESTO)
-        async function updateCartFragment() {
-             // Asume que tienes una URL para obtener solo el contenido HTML del carrito.
-             // Aquí usaremos la URL base del carrito como ejemplo, pero sería mejor
-             // una URL dedicada a devolver solo el fragmento.
-             const fragmentUrl = '/cart-fragment/'; // <<< DEBES CREAR ESTA URL Y VISTA
-             
-             try {
-                const response = await fetch(fragmentUrl);
-                if (response.ok) {
-                    const newHtml = await response.text();
-                    
-                    // Reemplaza el contenido del sidebar con el nuevo HTML
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = newHtml;
-                    
-                    // Encuentra el elemento principal del contenido que se actualiza
-                    const newContainer = tempDiv.querySelector('.offcanvas-cart');
-                    
-                    if (newContainer) {
-                        // Reemplazamos todo el contenido del sidebar con el nuevo HTML renderizado
-                        cartSidebar.innerHTML = newContainer.innerHTML;
-                        
-                        // Re-adjuntar listeners después de la actualización (importante)
-                        attachFormListeners(); 
-                    }
-                    
-                } else {
-                    console.error('No se pudo cargar el fragmento del carrito.');
+
+        // 2. LA FUNCIÓN QUE ACTUALIZA EL HTML (SIDEBAR, CONTADOR Y PRECIO NAVBAR)
+        async function updateCartUI() {
+            try {
+                // 1. Pedimos la página actual de nuevo en segundo plano
+                const response = await fetch(window.location.href);
+                const text = await response.text();
+
+                // 2. Convertimos el texto en HTML real
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, 'text/html');
+
+                // --- ACTUALIZAR SIDEBAR ---
+                const newItems = doc.querySelector('.cart-items-container');
+                const newFooter = doc.querySelector('.cart-footer');
+                if (newItems) document.querySelector('.cart-items-container').innerHTML = newItems.innerHTML;
+                if (newFooter) document.querySelector('.cart-footer').innerHTML = newFooter.innerHTML;
+
+                // --- ACTUALIZAR NOTIFICACIÓN COMPLETA DEL NAVBAR ---
+                // Intenta actualizar el contenedor completo del carrito en el menú
+                const currentNavCart = document.getElementById('cart-notification-container');
+                const newNavCart = doc.getElementById('cart-notification-container');
+
+                if (currentNavCart && newNavCart) {
+                    currentNavCart.innerHTML = newNavCart.innerHTML;
+                } 
+                
+                // --- FALLBACK: Solo actualizar el numerito (si no existe el contenedor padre) ---
+                const currentBadge = document.getElementById('cart-total-count');
+                const newBadge = doc.getElementById('cart-total-count');
+                if (currentBadge && newBadge) {
+                    currentBadge.innerHTML = newBadge.innerHTML;
+                    currentBadge.className = newBadge.className;
                 }
-             } catch (error) {
-                 console.error('Error al obtener el fragmento:', error);
-             }
+
+                // 3. Reactivar los botones del sidebar nuevo
+                attachFormListeners();
+
+            } catch (err) {
+                console.error('Error al refrescar la UI:', err);
+                window.location.reload();
+            }
         }
-        
-        // Función para adjuntar los listeners de eventos a los formularios
+
+        // 3. Asignar eventos a los botones
         function attachFormListeners() {
-            // 2. Interceptar formularios de actualización de cantidad
-            const qtyForms = cartSidebar.querySelectorAll('.qty-wrapper form');
-            qtyForms.forEach(form => {
-                // Previene el envío estándar al cambiar el input
-                form.onsubmit = (e) => {
-                    e.preventDefault();
-                    sendCartUpdate(form);
-                };
-                // Envía al cambiar la cantidad (como ya lo tienes, pero ahora por AJAX)
-                const input = form.querySelector('.qty-input');
-                if (input) {
-                    input.onchange = (e) => {
-                        // Si la cantidad es 0 o menos, forzamos la eliminación
-                        if (parseInt(e.target.value) <= 0) {
-                            // Cambiamos la acción al formulario de eliminación si existe
-                            const parentItem = e.target.closest('.cart-item');
-                            const deleteForm = parentItem ? parentItem.querySelector('.btn-delete-item').closest('form') : null;
-                            if (deleteForm) {
-                                sendCartUpdate(deleteForm);
-                                return;
-                            }
-                        }
+            const sidebar = document.getElementById('cartSidebar');
+            const forms = sidebar.querySelectorAll('form');
+            
+            forms.forEach(form => {
+                form.onsubmit = null; // Limpiar listeners viejos
+                
+                // Detectar input de cantidad
+                const qtyInput = form.querySelector('input[name="cantidad"]');
+                if (qtyInput) {
+                    qtyInput.onchange = (e) => {
+                        sendCartUpdate(form);
+                    };
+                    form.onsubmit = (e) => { e.preventDefault(); sendCartUpdate(form); };
+                }
+                
+                // Detectar botón eliminar
+                const deleteBtn = form.querySelector('.btn-delete-item');
+                if (deleteBtn) {
+                    form.onsubmit = (e) => {
+                        e.preventDefault();
                         sendCartUpdate(form);
                     };
                 }
             });
-
-            // 3. Interceptar formularios de eliminación
-            const deleteForms = cartSidebar.querySelectorAll('.cart-item > form');
-            deleteForms.forEach(form => {
-                form.onsubmit = (e) => {
-                    e.preventDefault();
-                    if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
-                        sendCartUpdate(form);
-                    }
-                };
-            });
         }
-        
-        // Adjunta los listeners al cargar la página
-        attachFormListeners();
 
+        attachFormListeners();
     });
 </script>
