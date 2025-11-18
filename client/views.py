@@ -14,7 +14,6 @@ def register(request):
 		form = UserCreationForm(request.POST)
 		if form.is_valid():
 			user = form.save()
-			messages.success(request, 'Cuenta creada correctamente. Ya puedes iniciar sesión.')
 			return redirect('client-login')
 		else:
 			messages.error(request, 'Por favor corrige los errores del formulario.')

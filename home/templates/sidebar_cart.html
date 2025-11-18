@@ -1,9 +1,10 @@
 {% load static %}
 
 <style>
+    /* --- Estructura General del Sidebar --- */
     .offcanvas-cart {
-        background-color: #1f1f1f;
-        color: #fff;
+        background-color: #121212; /* Fondo un poco más oscuro para contraste */
+        color: #e0e0e0;
         width: 400px !important;
         border-left: 1px solid #333;
         display: flex;
@@ -14,56 +15,179 @@
         .offcanvas-cart { width: 100% !important; }
     }
 
-    .offcanvas-header { border-bottom: 1px solid rgba(255,255,255,0.1); }
-    .offcanvas-title { font-weight: bold; letter-spacing: 1px; }
-    
-    /* Aquí tenías un error de sintaxis en tu código original */
-    .btn-close-white { filter: invert(1); }
+    .offcanvas-header {
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        padding: 1.5rem;
+    }
 
+    .offcanvas-title {
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        font-size: 1.2rem;
+    }
+
+    .btn-close-white { filter: invert(1) opacity(0.7); }
+    .btn-close-white:hover { opacity: 1; }
+
+    /* --- Contenedor de Items --- */
     .cart-items-container {
         flex-grow: 1;
         overflow-y: auto;
         padding: 20px;
+        background-color: #121212;
     }
 
-    /* Scrollbar oscuro */
-    .cart-items-container::-webkit-scrollbar { width: 6px; }
-    .cart-items-container::-webkit-scrollbar-track { background: #1f1f1f; }
-    .cart-items-container::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+    /* Scrollbar bonito y delgado */
+    .cart-items-container::-webkit-scrollbar { width: 5px; }
+    .cart-items-container::-webkit-scrollbar-track { background: transparent; }
+    .cart-items-container::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
 
-    /* Item del carrito */
+    /* --- Tarjeta del Producto (Card) --- */
     .cart-item {
         display: flex;
-        align-items: center;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 10px;
-        padding: 10px;
+        background: #1e1e1e; /* Tarjeta ligeramente más clara que el fondo */
+        border: 1px solid #333;
+        border-radius: 12px;
+        padding: 12px;
         margin-bottom: 15px;
-        transition: 0.2s;
+        transition: all 0.2s ease;
+        position: relative;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     }
-    .cart-item:hover { background: rgba(255, 255, 255, 0.1); }
 
+    .cart-item:hover {
+        border-color: #555;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+
+    /* Imagen */
     .cart-item-img {
-        width: 60px; height: 60px;
-        border-radius: 8px; object-fit: cover;
-        margin-right: 15px; background-color: #fff;
+        width: 80px; 
+        height: 80px;
+        border-radius: 8px;
+        object-fit: cover;
+        background-color: #fff;
+        flex-shrink: 0; /* Evita que la imagen se aplaste */
     }
 
-    .cart-item-details { flex-grow: 1; line-height: 1.2; }
-    .cart-item-title { font-size: 14px; font-weight: 600; display: block; margin-bottom: 4px;}
-    .cart-item-price { font-size: 14px; color: #ffc107; font-weight: bold; }
-    .cart-item-qty { font-size: 12px; color: #ccc; }
+    /* Detalles del producto */
+    .cart-item-details {
+        flex-grow: 1;
+        padding-left: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
 
-    /* Footer del carrito */
+    /* Fila superior: Título y Talla */
+    .cart-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 5px;
+    }
+
+    .cart-item-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #fff;
+        line-height: 1.2;
+        margin-bottom: 2px;
+        display: block;
+        padding-right: 20px; /* Espacio para no chocar con el botón eliminar si es largo */
+    }
+
+    .cart-item-size {
+        font-size: 0.75rem;
+        color: #aaa;
+        background: #2c2c2c;
+        padding: 2px 6px;
+        border-radius: 4px;
+        display: inline-block;
+    }
+
+    /* Fila inferior: Controles y Precio */
+    .cart-item-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 8px;
+    }
+
+    /* Input de cantidad personalizado */
+    .qty-wrapper {
+        display: flex;
+        align-items: center;
+        background: #2a2a2a;
+        border-radius: 6px;
+        padding: 2px;
+        border: 1px solid #444;
+    }
+    
+    .qty-label {
+        font-size: 10px;
+        color: #888;
+        padding-left: 6px;
+        margin-right: 4px;
+        text-transform: uppercase;
+    }
+
+    .qty-input {
+        background: transparent;
+        border: none;
+        color: #fff;
+        width: 35px;
+        text-align: center;
+        font-size: 14px;
+        font-weight: bold;
+        padding: 4px 0;
+    }
+    .qty-input:focus { outline: none; }
+    
+    /* Quitar flechas del input number en navegadores */
+    .qty-input::-webkit-outer-spin-button,
+    .qty-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .qty-input[type=number] { -moz-appearance: textfield; }
+
+    /* Precio */
+    .cart-item-price {
+        font-size: 1rem;
+        color: #ffc107; /* Color Warning de Bootstrap */
+        font-weight: 700;
+    }
+
+    /* Botón eliminar (Posicionado absoluto o flotante) */
+    .btn-delete-item {
+        color: #666;
+        transition: color 0.2s;
+        background: none;
+        border: none;
+        padding: 5px;
+        position: absolute;
+        top: 8px;
+        right: 8px;
+    }
+    .btn-delete-item:hover { color: #ff4d4d; }
+
+    /* --- Footer --- */
     .cart-footer {
-        padding: 20px;
-        background: #1f1f1f;
-        border-top: 1px solid rgba(255,255,255,0.1);
-        box-shadow: 0 -5px 15px rgba(0,0,0,0.2);
+        padding: 25px;
+        background: #161616;
+        border-top: 1px solid #333;
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
     }
     .total-row {
-        display: flex; justify-content: space-between;
-        font-size: 18px; font-weight: bold; margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #fff;
     }
 </style>
 
@@ -72,7 +196,7 @@
     
     <div class="offcanvas-header">
         <h5 class="offcanvas-title" id="cartSidebarLabel">
-            <i class="fas fa-shopping-bag me-2 text-warning"></i> Mi Compra
+            <i class="fas fa-shopping-bag me-2 text-warning"></i> Mi Carrito
         </h5>
         <button type="button" class="btn-close btn-close-white text-reset" data-bs-dismiss="offcanvas"></button>
     </div>
@@ -81,53 +205,267 @@
         {% if carrito and carrito.itemcarrito_set.exists %}
             {% for item in carrito.itemcarrito_set.all %}
             <div class="cart-item">
-                <img src="https://cdn-icons-png.flaticon.com/512/2589/2589903.png" class="cart-item-img" alt="Zapato">
+                
+                <form action="{% url 'eliminar_del_carrito' item.id %}" method="POST">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-delete-item" title="Eliminar producto">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </form>
+
+                {% if item.producto.imagenes.all %}
+                    <img src="{{ item.producto.imagenes.first.imagen }}" class="cart-item-img" alt="{{ item.producto.nombre }}">
+                {% else %}
+                    <img src="https://via.placeholder.com/80x80?text=Sin+Foto" class="cart-item-img" alt="Sin imagen">
+                {% endif %}
                 
                 <div class="cart-item-details">
-                    <span class="cart-item-title">{{ item.producto.nombre }}</span>
-                    <div class="d-flex justify-content-between align-items-center mt-1">
-                        <span class="cart-item-qty">Cant: {{ item.cantidad }}</span>
-                        <span class="cart-item-price">${% widthratio item.producto.precio_final 1 item.cantidad %}</span>
+                    
+                    <div>
+                        <span class="cart-item-title">{{ item.producto.nombre }}</span>
+                        {% if item.talla %}
+                            <span class="cart-item-size">Talla: {{ item.talla }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="cart-item-controls">
+                        
+                        <form action="{% url 'actualizar_cantidad_carrito' item.id %}" method="POST">
+                            {% csrf_token %}
+                            <div class="qty-wrapper">
+                                <span class="qty-label">Cant</span>
+                                <input type="number" name="cantidad" value="{{ item.cantidad }}" min="1" max="{{ item.producto.stock }}" 
+                                       class="qty-input" onchange="this.form.submit()">
+                            </div>
+                        </form>
+
+                        <span class="cart-item-price">
+                            {% widthratio item.producto.precio_final 1 item.cantidad %} €
+                        </span>
                     </div>
                 </div>
-                
-                <button class="btn btn-sm text-danger ms-2">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
             </div>
             {% endfor %}
+
         {% else %}
-            <div class="text-center mt-5 text-secondary">
-                <i class="fas fa-shopping-cart fa-3x mb-3 opacity-25"></i>
-                <p>Tu carrito está vacío.</p>
-                <button class="btn btn-outline-light btn-sm mt-2" data-bs-dismiss="offcanvas">Seguir comprando</button>
+            <div class="d-flex flex-column align-items-center justify-content-center h-100 text-secondary">
+                <div class="mb-4 p-4 rounded-circle bg-dark">
+                    <i class="fas fa-shopping-cart fa-3x opacity-50"></i>
+                </div>
+                <h5 class="text-white">Tu carrito está vacío</h5>
+                <p class="small mb-4">¡Añade tus zapatos favoritos!</p>
+                <button class="btn btn-outline-warning btn-sm px-4 rounded-pill" data-bs-dismiss="offcanvas">
+                    Seguir comprando
+                </button>
             </div>
         {% endif %}
     </div>
 
     <div class="cart-footer">
         <div class="total-row">
-            <span>Total Estimado</span>
-            <span class="text-warning">
-                {% if carrito.itemcarrito_set.exists %}
-                    <script>
-                        let total = 0;
-                        {% for item in carrito.itemcarrito_set.all %}
-                            total += {{ item.producto.precio_final }} * {{ item.cantidad }};
-                        {% endfor %}
-                        document.write('$' + total.toFixed(2));
-                    </script>
+            <span class="small text-uppercase ls-1 text-white">Total Estimado</span>
+            <span class="text-warning fs-4">
+                {% if carrito %}
+                    {{ carrito.get_total|floatformat:2 }} €
                 {% else %}
-                    $0.00
+                    0.00 €
                 {% endif %}
             </span>
         </div>
+        
         {% if carrito.itemcarrito_set.exists %}
-            <a href="#" class="btn btn-warning w-100 fw-bold py-2">
-                Finalizar Compra <i class="fas fa-arrow-right ms-2"></i>
+            <a href="{% url 'carrito_compra' %}" class="btn btn-warning w-100 fw-bold py-3 rounded-3 shadow-sm">
+                Finalizar Compra <i class="fas fa-chevron-right ms-2 small"></i>
             </a>
+            
+            <form action="{% url 'vaciar_carrito' %}" method="POST" class="mt-3 text-center">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-link btn-sm text-secondary text-decoration-none small">
+                    Vaciar todo el carrito
+                </button>
+            </form>
         {% else %}
-            <button class="btn btn-secondary w-100 py-2" disabled>Carrito vacío</button>
+            <button class="btn btn-secondary w-100 py-3 rounded-3" disabled>Carrito vacío</button>
         {% endif %}
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('cart_open')) {
+            const cartSidebar = new bootstrap.Offcanvas(document.getElementById('cartSidebar'));
+            cartSidebar.show();
+        }
+    });
+    document.addEventListener("DOMContentLoaded", function() {
+        const cartSidebar = document.getElementById('cartSidebar');
+
+        // 1. Mostrar/Ocultar el Sidebar (manteniendo tu lógica)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('cart_open')) {
+            const offcanvas = new bootstrap.Offcanvas(cartSidebar);
+            offcanvas.show();
+        }
+
+        // --- FUNCIONES AJAX ---
+
+        // Función auxiliar para obtener el token CSRF
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    let cookie = cookies[i].trim();
+                    if (cookie.startsWith(name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+
+        // Función que maneja la petición AJAX y actualiza el carrito
+        async function sendCartUpdate(form) {
+            const formData = new FormData(form);
+            const url = form.action;
+            
+            // Muestra un indicador de carga (opcional)
+            cartSidebar.classList.add('loading'); 
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'X-Requested-With': 'XMLHttpRequest' // Para identificar la petición como AJAX en la vista
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Si la actualización/eliminación fue exitosa
+                    
+                    // Lógica para actualizar el DOM: 
+                    // Lo más simple es recargar el contenido completo del sidebar
+                    // con una nueva llamada AJAX que devuelva el HTML actualizado.
+                    
+                    // --- Solución simple: Recargar todo el carrito por AJAX (Recomendado) ---
+                    // Suponiendo que tienes una URL para obtener el HTML del carrito (ej. un endpoint llamado 'cart_fragment')
+                    
+                    await updateCartFragment(); // Llama a una función que recarga el HTML
+                    
+                    // --- Fin Solución simple ---
+                    
+                    // NOTA: Para una actualización más fina, necesitarías que tu vista
+                    // devuelva el nuevo precio total y la cantidad de ítems, y actualizar
+                    // solo esos elementos en el DOM.
+                    
+                } else {
+                    // Si hubo error (ej. stock insuficiente)
+                    const message = data.message || 'Error desconocido al actualizar el carrito.';
+                    alert(message);
+                    
+                    // Si es un error de stock, corrige la cantidad en el input
+                    if (data.max_qty !== undefined) {
+                        const qtyInput = form.querySelector('.qty-input');
+                        if (qtyInput) {
+                            qtyInput.value = data.max_qty;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Ocurrió un error de conexión al actualizar el carrito.');
+            } finally {
+                cartSidebar.classList.remove('loading');
+            }
+        }
+        
+        
+        // Función para recargar el fragmento HTML del carrito (NECESITAS UNA VISTA ADICIONAL PARA ESTO)
+        async function updateCartFragment() {
+             // Asume que tienes una URL para obtener solo el contenido HTML del carrito.
+             // Aquí usaremos la URL base del carrito como ejemplo, pero sería mejor
+             // una URL dedicada a devolver solo el fragmento.
+             const fragmentUrl = '/cart-fragment/'; // <<< DEBES CREAR ESTA URL Y VISTA
+             
+             try {
+                const response = await fetch(fragmentUrl);
+                if (response.ok) {
+                    const newHtml = await response.text();
+                    
+                    // Reemplaza el contenido del sidebar con el nuevo HTML
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = newHtml;
+                    
+                    // Encuentra el elemento principal del contenido que se actualiza
+                    const newContainer = tempDiv.querySelector('.offcanvas-cart');
+                    
+                    if (newContainer) {
+                        // Reemplazamos todo el contenido del sidebar con el nuevo HTML renderizado
+                        cartSidebar.innerHTML = newContainer.innerHTML;
+                        
+                        // Re-adjuntar listeners después de la actualización (importante)
+                        attachFormListeners(); 
+                    }
+                    
+                } else {
+                    console.error('No se pudo cargar el fragmento del carrito.');
+                }
+             } catch (error) {
+                 console.error('Error al obtener el fragmento:', error);
+             }
+        }
+        
+        // Función para adjuntar los listeners de eventos a los formularios
+        function attachFormListeners() {
+            // 2. Interceptar formularios de actualización de cantidad
+            const qtyForms = cartSidebar.querySelectorAll('.qty-wrapper form');
+            qtyForms.forEach(form => {
+                // Previene el envío estándar al cambiar el input
+                form.onsubmit = (e) => {
+                    e.preventDefault();
+                    sendCartUpdate(form);
+                };
+                // Envía al cambiar la cantidad (como ya lo tienes, pero ahora por AJAX)
+                const input = form.querySelector('.qty-input');
+                if (input) {
+                    input.onchange = (e) => {
+                        // Si la cantidad es 0 o menos, forzamos la eliminación
+                        if (parseInt(e.target.value) <= 0) {
+                            // Cambiamos la acción al formulario de eliminación si existe
+                            const parentItem = e.target.closest('.cart-item');
+                            const deleteForm = parentItem ? parentItem.querySelector('.btn-delete-item').closest('form') : null;
+                            if (deleteForm) {
+                                sendCartUpdate(deleteForm);
+                                return;
+                            }
+                        }
+                        sendCartUpdate(form);
+                    };
+                }
+            });
+
+            // 3. Interceptar formularios de eliminación
+            const deleteForms = cartSidebar.querySelectorAll('.cart-item > form');
+            deleteForms.forEach(form => {
+                form.onsubmit = (e) => {
+                    e.preventDefault();
+                    if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+                        sendCartUpdate(form);
+                    }
+                };
+            });
+        }
+        
+        // Adjunta los listeners al cargar la página
+        attachFormListeners();
+
+    });
+</script>
