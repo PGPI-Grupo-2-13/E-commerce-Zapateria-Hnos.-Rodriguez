@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 
@@ -10,20 +11,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body {
-            font-family: "Poppins", sans-serif;
-        }
-
-        .navbar-brand {
-            font-weight: bold;
-        }
-
+        body { font-family: "Poppins", sans-serif; background-color: #f9f9f9; display: flex; flex-direction: column; min-height: 100vh;}
+        
+        /* Estilos específicos de esta página */
         .item-img {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 8px;
+            width: 80px; height: 80px;
+            object-fit: cover; border-radius: 8px;
         }
+        .order-summary-card { border: none; border-radius: 10px; }
     </style>
 </head>
 
@@ -31,103 +26,73 @@
 
     {% include 'sidebar.html' %}
     {% include 'sidebar_cart.html' %}
-    <!-- NAVBAR -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-        <button class="btn btn-outline-light ms-3" onclick="toggleSidebar()">
-            <i class="fas fa-bars"></i>
-        </button>
-        <div class="container">
-            <a class="navbar-brand" href="/">Zapatería Hnos. Rodríguez</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <button class="btn btn-warning ms-2" type="button" data-bs-toggle="offcanvas"
-                            data-bs-target="#cartSidebar" aria-controls="cartSidebar">
-                            Carrito 🛒
-                        </button>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    {% include 'navbar.html' %}
 
-    <!-- DETALLE -->
-    <div class="container my-5">
+    <div class="container my-5 flex-grow-1">
 
-        <h2 class="mb-4 text-center">Detalle del Pedido</h2>
+        <h2 class="mb-4 text-center fw-bold">Detalle del Pedido</h2>
 
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-
-                <h4 class="mb-3">Pedido Nº {{ pedido.numero_pedido }}</h4>
-
-                <p><strong>Estado:</strong> {{ pedido.estado }}</p>
-                <p><strong>Fecha:</strong> {{ pedido.fecha_creacion|date:"d/m/Y H:i" }}</p>
-                <p><strong>Subtotal:</strong> {{ pedido.subtotal }} €</p>
-                <p><strong>Coste de entrega:</strong> {{ pedido.coste_entrega }} €</p>
-                <p><strong>Impuestos:</strong> {{ pedido.impuestos }} €</p>
-                <p><strong>Descuento:</strong> {{ pedido.descuento }} €</p>
+        <div class="card shadow-sm mb-4 order-summary-card">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="m-0">Pedido #{{ pedido.numero_pedido }}</h4>
+                    <span class="badge bg-dark fs-6">{{ pedido.estado }}</span>
+                </div>
                 <hr>
-                <h5>Total: <strong>{{ total }} €</strong></h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Fecha:</strong> {{ pedido.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                        <p><strong>Subtotal:</strong> {{ pedido.subtotal }} €</p>
+                        <p><strong>Coste envío:</strong> {{ pedido.coste_entrega }} €</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Impuestos:</strong> {{ pedido.impuestos }} €</p>
+                        <p><strong>Descuento:</strong> {{ pedido.descuento }} €</p>
+                        <h5 class="mt-3 text-success">Total: <strong>{{ total }} €</strong></h5>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- ITEMS DEL PEDIDO -->
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h4 class="mb-3">Artículos</h4>
-
+        <div class="card shadow-sm order-summary-card">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
+                    <table class="table table-hover align-middle mb-0">
                         <thead class="table-dark">
                             <tr>
-                                <th>Producto</th>
-                                <th>Talla</th>
-                                <th>Cantidad</th>
-                                <th>Precio unitario</th>
-                                <th>Subtotal</th>
+                                <th class="py-3 ps-4">Producto</th>
+                                <th class="py-3">Talla</th>
+                                <th class="py-3">Cantidad</th>
+                                <th class="py-3">Precio Unit.</th>
+                                <th class="py-3 pe-4">Subtotal</th>
                             </tr>
                         </thead>
-
                         <tbody>
                             {% for item in items %}
                             <tr>
-                                <td>{{ item.producto.nombre }}</td>
+                                <td class="ps-4 fw-bold">{{ item.producto.nombre }}</td>
                                 <td>{{ item.talla }}</td>
                                 <td>{{ item.cantidad }}</td>
                                 <td>{{ item.precio_unitario }} €</td>
-                                <td>{{ item.subtotal_item }} €</td>
+                                <td class="pe-4 fw-bold">{{ item.subtotal_item }} €</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
-
             </div>
         </div>
 
-        <div class="text-center mt-4">
-            <a href="/pedidos" class="btn btn-secondary">Volver a mis pedidos</a>
+        <div class="text-center mt-5">
+            <a href="/pedidos" class="btn btn-outline-dark px-4">
+                <i class="fas fa-arrow-left me-2"></i> Volver a mis pedidos
+            </a>
         </div>
 
     </div>
 
-    <footer class="text-center py-4 bg-dark text-light">
-        <p class="mb-1">© 2025 Zapatería Hnos. Rodríguez</p>
-    </footer>
+    {% include 'footer.html' %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        const cartSidebar = new bootstrap.Offcanvas(document.getElementById('cartSidebar'), { backdrop: false });
-
-        document.getElementById('openCartBtn').addEventListener('click', function () {
-            cartSidebar.show();
-        });
-    </script>
-
 </body>
-
 </html>
