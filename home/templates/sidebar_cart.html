@@ -1,0 +1,437 @@
+{% load static %}
+
+<style>
+    /* --- Estructura General del Sidebar --- */
+    .offcanvas-cart {
+        background-color: #121212; /* Fondo un poco más oscuro para contraste */
+        color: #e0e0e0;
+        width: 400px !important;
+        border-left: 1px solid #333;
+        display: flex;
+        flex-direction: column;
+    }
+
+    @media (max-width: 576px) {
+        .offcanvas-cart { width: 100% !important; }
+    }
+
+    .offcanvas-header {
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        padding: 1.5rem;
+    }
+
+    .offcanvas-title {
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        font-size: 1.2rem;
+    }
+
+    .btn-close-white { filter: invert(1) opacity(0.7); }
+    .btn-close-white:hover { opacity: 1; }
+
+    /* --- Contenedor de Items --- */
+    .cart-items-container {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 20px;
+        background-color: #121212;
+    }
+
+    /* Scrollbar bonito y delgado */
+    .cart-items-container::-webkit-scrollbar { width: 5px; }
+    .cart-items-container::-webkit-scrollbar-track { background: transparent; }
+    .cart-items-container::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
+
+    /* --- Tarjeta del Producto (Card) --- */
+    .cart-item {
+        display: flex;
+        background: #1e1e1e; /* Tarjeta ligeramente más clara que el fondo */
+        border: 1px solid #333;
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 15px;
+        transition: all 0.2s ease;
+        position: relative;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+
+    .cart-item:hover {
+        border-color: #555;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+
+    /* Imagen */
+    .cart-item-img {
+        width: 80px; 
+        height: 80px;
+        border-radius: 8px;
+        object-fit: cover;
+        background-color: #fff;
+        flex-shrink: 0; /* Evita que la imagen se aplaste */
+    }
+
+    /* Detalles del producto */
+    .cart-item-details {
+        flex-grow: 1;
+        padding-left: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    /* Fila superior: Título y Talla */
+    .cart-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 5px;
+    }
+
+    .cart-item-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #fff;
+        line-height: 1.2;
+        margin-bottom: 2px;
+        display: block;
+        padding-right: 20px; /* Espacio para no chocar con el botón eliminar si es largo */
+    }
+
+    .cart-item-size {
+        font-size: 0.75rem;
+        color: #aaa;
+        background: #2c2c2c;
+        padding: 2px 6px;
+        border-radius: 4px;
+        display: inline-block;
+    }
+
+    /* Fila inferior: Controles y Precio */
+    .cart-item-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 8px;
+    }
+
+    /* Input de cantidad personalizado */
+    .qty-wrapper {
+        display: flex;
+        align-items: center;
+        background: #2a2a2a;
+        border-radius: 6px;
+        padding: 2px;
+        border: 1px solid #444;
+    }
+    
+    .qty-label {
+        font-size: 10px;
+        color: #888;
+        padding-left: 6px;
+        margin-right: 4px;
+        text-transform: uppercase;
+    }
+
+    .qty-input {
+        background: transparent;
+        border: none;
+        color: #fff;
+        width: 35px;
+        text-align: center;
+        font-size: 14px;
+        font-weight: bold;
+        padding: 4px 0;
+    }
+    .qty-input:focus { outline: none; }
+    
+    /* Quitar flechas del input number en navegadores */
+    .qty-input::-webkit-outer-spin-button,
+    .qty-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .qty-input[type=number] { -moz-appearance: textfield; }
+
+    /* Precio */
+    .cart-item-price {
+        font-size: 1rem;
+        color: #ffc107; /* Color Warning de Bootstrap */
+        font-weight: 700;
+    }
+
+    /* Botón eliminar (Posicionado absoluto o flotante) */
+    .btn-delete-item {
+        color: #666;
+        transition: color 0.2s;
+        background: none;
+        border: none;
+        padding: 5px;
+        position: absolute;
+        top: 8px;
+        right: 8px;
+    }
+    .btn-delete-item:hover { color: #ff4d4d; }
+
+    /* --- Footer --- */
+    .cart-footer {
+        padding: 25px;
+        background: #161616;
+        border-top: 1px solid #333;
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
+    }
+    .total-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #fff;
+    }
+</style>
+
+<div class="offcanvas offcanvas-end offcanvas-cart shadow" tabindex="-1" id="cartSidebar" aria-labelledby="cartSidebarLabel" 
+    data-bs-scroll="true" data-bs-backdrop="true">
+    
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="cartSidebarLabel">
+            <i class="fas fa-shopping-bag me-2 text-warning"></i> Mi Carrito
+        </h5>
+        <button type="button" class="btn-close btn-close-white text-reset" data-bs-dismiss="offcanvas"></button>
+    </div>
+
+    <div class="cart-items-container">
+        {% if carrito and carrito.itemcarrito_set.exists %}
+            {% for item in carrito.itemcarrito_set.all %}
+            <div class="cart-item">
+                
+                <form action="{% url 'eliminar_del_carrito' item.id %}" method="POST">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-delete-item" title="Eliminar producto">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </form>
+
+                {% if item.producto.imagenes.all %}
+                    <img src="{{ item.producto.imagenes.first.imagen }}" class="cart-item-img" alt="{{ item.producto.nombre }}">
+                {% else %}
+                    <img src="https://via.placeholder.com/80x80?text=Sin+Foto" class="cart-item-img" alt="Sin imagen">
+                {% endif %}
+                
+                <div class="cart-item-details">
+                    
+                    <div>
+                        <span class="cart-item-title">{{ item.producto.nombre }}</span>
+                        {% if item.talla %}
+                            <span class="cart-item-size">Talla: {{ item.talla }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="cart-item-controls">
+                        
+                        <form action="{% url 'actualizar_cantidad_carrito' item.id %}" method="POST">
+                            {% csrf_token %}
+                            <div class="qty-wrapper">
+                                <span class="qty-label">Cant</span>
+                                <input type="number" name="cantidad" value="{{ item.cantidad }}" min="1" max="{{ item.producto.stock }}" 
+                                       class="qty-input" onchange="this.form.submit()">
+                            </div>
+                        </form>
+
+                        <span class="cart-item-price">
+                            {% widthratio item.producto.precio_final 1 item.cantidad %} €
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+        {% else %}
+            <div class="d-flex flex-column align-items-center justify-content-center h-100 text-secondary">
+                <div class="mb-4 p-4 rounded-circle bg-dark">
+                    <i class="fas fa-shopping-cart fa-3x opacity-50"></i>
+                </div>
+                <h5 class="text-white">Tu carrito está vacío</h5>
+                <p class="small mb-4">¡Añade tus zapatos favoritos!</p>
+                <button class="btn btn-outline-warning btn-sm px-4 rounded-pill" data-bs-dismiss="offcanvas">
+                    Seguir comprando
+                </button>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="cart-footer">
+        <div class="total-row">
+            <span class="small text-uppercase ls-1 text-white">Total Estimado</span>
+            <span class="text-warning fs-4">
+                {% if carrito %}
+                    {{ carrito.get_total|floatformat:2 }} €
+                {% else %}
+                    0.00 €
+                {% endif %}
+            </span>
+        </div>
+        
+        {% if carrito.itemcarrito_set.exists %}
+            <a href="{% url 'carrito_compra' %}" class="btn btn-warning w-100 fw-bold py-3 rounded-3 shadow-sm">
+                Finalizar Compra <i class="fas fa-chevron-right ms-2 small"></i>
+            </a>
+            
+            <form action="{% url 'vaciar_carrito' %}" method="POST" class="mt-3 text-center">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-link btn-sm text-secondary text-decoration-none small">
+                    Vaciar todo el carrito
+                </button>
+            </form>
+        {% else %}
+            <button class="btn btn-secondary w-100 py-3 rounded-3" disabled>Carrito vacío</button>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // --- Inicialización del Sidebar ---
+        const cartSidebarEl = document.getElementById('cartSidebar');
+        
+        // Abrir sidebar si la URL lo pide (útil para fallbacks)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('cart_open')) {
+            const offcanvas = new bootstrap.Offcanvas(cartSidebarEl);
+            offcanvas.show();
+        }
+
+        // --- LOGICA AJAX ---
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    let cookie = cookies[i].trim();
+                    if (cookie.startsWith(name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+        // 1. Función para enviar la petición al servidor
+        async function sendCartUpdate(form) {
+            const formData = new FormData(form);
+            const url = form.action;
+            
+            // Efecto visual de carga
+            cartSidebarEl.style.opacity = '0.6';
+            cartSidebarEl.style.pointerEvents = 'none';
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Si todo salió bien, actualizamos la interfaz visualmente
+                    await updateCartUI(); 
+                } else {
+                    alert(data.message || 'Error al actualizar.');
+                    // Si falló por stock, corregimos el input
+                    if(data.max_qty) {
+                        const input = form.querySelector('input[name="cantidad"]');
+                        if(input) input.value = data.max_qty;
+                    }
+                }
+            } catch (error) {
+                console.error('Error de conexión:', error);
+            } finally {
+                // Quitar efecto de carga
+                cartSidebarEl.style.opacity = '1';
+                cartSidebarEl.style.pointerEvents = 'auto';
+            }
+        }
+
+        // 2. LA FUNCIÓN QUE ACTUALIZA EL HTML (SIDEBAR, CONTADOR Y PRECIO NAVBAR)
+        async function updateCartUI() {
+            try {
+                // 1. Pedimos la página actual de nuevo en segundo plano
+                const response = await fetch(window.location.href);
+                const text = await response.text();
+
+                // 2. Convertimos el texto en HTML real
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, 'text/html');
+
+                // --- ACTUALIZAR SIDEBAR ---
+                const newItems = doc.querySelector('.cart-items-container');
+                const newFooter = doc.querySelector('.cart-footer');
+                if (newItems) document.querySelector('.cart-items-container').innerHTML = newItems.innerHTML;
+                if (newFooter) document.querySelector('.cart-footer').innerHTML = newFooter.innerHTML;
+
+                // --- ACTUALIZAR NOTIFICACIÓN COMPLETA DEL NAVBAR ---
+                // Intenta actualizar el contenedor completo del carrito en el menú
+                const currentNavCart = document.getElementById('cart-notification-container');
+                const newNavCart = doc.getElementById('cart-notification-container');
+
+                if (currentNavCart && newNavCart) {
+                    currentNavCart.innerHTML = newNavCart.innerHTML;
+                } 
+                
+                // --- FALLBACK: Solo actualizar el numerito (si no existe el contenedor padre) ---
+                const currentBadge = document.getElementById('cart-total-count');
+                const newBadge = doc.getElementById('cart-total-count');
+                if (currentBadge && newBadge) {
+                    currentBadge.innerHTML = newBadge.innerHTML;
+                    currentBadge.className = newBadge.className;
+                }
+
+                // 3. Reactivar los botones del sidebar nuevo
+                attachFormListeners();
+
+            } catch (err) {
+                console.error('Error al refrescar la UI:', err);
+                window.location.reload();
+            }
+        }
+
+        // 3. Asignar eventos a los botones
+        function attachFormListeners() {
+            const sidebar = document.getElementById('cartSidebar');
+            const forms = sidebar.querySelectorAll('form');
+            
+            forms.forEach(form => {
+                form.onsubmit = null; // Limpiar listeners viejos
+                
+                // Detectar input de cantidad
+                const qtyInput = form.querySelector('input[name="cantidad"]');
+                if (qtyInput) {
+                    qtyInput.onchange = (e) => {
+                        sendCartUpdate(form);
+                    };
+                    form.onsubmit = (e) => { e.preventDefault(); sendCartUpdate(form); };
+                }
+                
+                // Detectar botón eliminar
+                const deleteBtn = form.querySelector('.btn-delete-item');
+                if (deleteBtn) {
+                    form.onsubmit = (e) => {
+                        e.preventDefault();
+                        sendCartUpdate(form);
+                    };
+                }
+            });
+        }
+
+        attachFormListeners();
+    });
+</script>

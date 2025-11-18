@@ -78,6 +78,7 @@ class Product(models.Model):
             self.slug = slugify(self.nombre)[:240]
         super().save(*args, **kwargs)
 
+    @property
     def precio_final(self):
         if self.oferta:
             descuento = (self.oferta / Decimal('100')) * self.precio

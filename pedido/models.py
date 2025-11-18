@@ -59,16 +59,29 @@ class ItemPedido(models.Model):
         return f"{self.cantidad} x {self.producto.nombre}"
 
 class Carrito(models.Model):
-    cliente = models.OneToOneField(
-        Cliente,
-        on_delete=models.CASCADE 
-    )
+    # El cliente ahora debe ser opcional (null=True, blank=True)
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, null=True, blank=True)
+    
+    # AGREGA ESTE CAMPO NUEVO:
+    session_key = models.CharField(max_length=40, null=True, blank=True)
     
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Carrito de {self.cliente.nombre}"
+        if self.cliente:
+            return f"Carrito de {self.cliente}"
+        return f"Carrito Anónimo ({self.session_key})"
+
+    def get_total(self):
+        total = 0
+        for item in self.itemcarrito_set.all():
+            # CORRECCIÓN: Añadimos () después de precio_final
+            total += item.producto.precio_final * item.cantidad 
+        return total
+
+    def get_cantidad_items(self):
+        return sum(item.cantidad for item in self.itemcarrito_set.all())
 
 class ItemCarrito(models.Model):
     carrito = models.ForeignKey(
