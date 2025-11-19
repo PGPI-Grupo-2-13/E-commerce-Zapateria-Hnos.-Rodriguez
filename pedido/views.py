@@ -27,28 +27,51 @@ def _get_carrito_context(request):
 
 
 def _get_or_create_carrito(request):
-    """Obtiene o crea un carrito para el usuario o sesión anónima"""
+    """Obtiene o crea un carrito de forma robusta (elimina duplicados si existen)"""
+    carrito = None
+    
     if request.user.is_authenticated:
+        # LOGICA PARA USUARIO REGISTRADO
         try:
             cliente = Cliente.objects.get(user=request.user) 
         except Cliente.DoesNotExist:
             cliente = Cliente.objects.create(user=request.user, direccion='', ciudad='', codigo_postal='') 
-            
-        carrito, created = Carrito.objects.get_or_create(cliente=cliente, defaults={'session_key': None}) 
         
-        if not created and carrito.session_key:
+        # Buscamos carritos existentes para este cliente
+        qs = Carrito.objects.filter(cliente=cliente)
+        
+        if qs.exists():
+            # Si existe uno o más, cogemos el primero (el más antiguo)
+            carrito = qs.first()
+            # ¡AUTOCORRECCIÓN! Si hay duplicados, los borramos para evitar el error 500
+            if qs.count() > 1:
+                for duplicado in qs[1:]:
+                    duplicado.delete()
+        else:
+            # Si no existe, lo creamos
+            carrito = Carrito.objects.create(cliente=cliente, session_key=None)
+        
+        # Asegurar que no tenga session_key si es usuario logueado
+        if carrito.session_key:
             carrito.session_key = None
             carrito.save()
+
     else:
+        # LOGICA PARA USUARIO ANÓNIMO
         if not request.session.session_key:
             request.session.create()
         
         session_key = request.session.session_key
         
-        carrito, created = Carrito.objects.get_or_create(
-            session_key=session_key,
-            defaults={'cliente': None}
-        )
+        qs = Carrito.objects.filter(session_key=session_key)
+        
+        if qs.exists():
+            carrito = qs.first()
+            if qs.count() > 1:
+                for duplicado in qs[1:]:
+                    duplicado.delete()
+        else:
+            carrito = Carrito.objects.create(session_key=session_key, cliente=None)
     
     return carrito
 
