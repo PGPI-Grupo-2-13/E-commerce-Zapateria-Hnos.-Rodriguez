@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Pago correcto</title>
+</head>
+<body>
+    <h1>Pago realizado correctamente ✅</h1>
+    <p>Tu pedido <strong>{{ pedido.numero_pedido }}</strong> se ha pagado con éxito.</p>
+
+    <p>Estado del pedido: {{ pedido.estado }}</p>
+    <p>Importe total: {{ pedido.total }} €</p>
+
+    <a href="{% url 'listado_pedidos' %}">Ver mis pedidos</a>
+</body>
+</html>

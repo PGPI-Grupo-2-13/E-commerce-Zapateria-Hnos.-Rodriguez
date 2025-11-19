@@ -33,4 +33,5 @@ urlpatterns = [
     
     path('pedidos/', pedidoViews.listado_pedidos, name='pedidos'),
     path('pedidos/<int:pedido_id>/', pedidoViews.detalle_pedido, name='detalle_pedido'),
+    path("pedidos/", include("pedido.urls")),
 ]

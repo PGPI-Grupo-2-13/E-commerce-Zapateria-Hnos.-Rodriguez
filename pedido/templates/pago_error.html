@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Error en el pago</title>
+</head>
+<body>
+    <h1>Hubo un problema con el pago ❌</h1>
+    <p>Pedido: <strong>{{ pedido.numero_pedido }}</strong></p>
+
+    {% if error %}
+        <p>{{ error }}</p>
+    {% else %}
+        <p>Ha ocurrido un error al procesar el pago. Inténtalo de nuevo más tarde.</p>
+    {% endif %}
+
+    <a href="{% url 'checkout_pedido' pedido.numero_pedido %}">Intentar pagar de nuevo</a><br>
+    <a href="{% url 'listado_pedidos' %}">Volver a mis pedidos</a>
+</body>
+</html>

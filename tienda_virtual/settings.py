@@ -150,3 +150,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = 'client-login'
+
+STRIPE_SECRET_KEY = "sk_test_51SV8MIIB2QlFGWxjsIilyZt5KcwssRu2oIawAe0f7BKRmpHHs0LuIJq4c7uR2vcnIZFdrm2qSznhRm6qAhfHoiB600DfhmhNpa"
+STRIPE_PUBLIC_KEY = "pk_test_51SV8MIIB2QlFGWxjxbdFOylNNrjmS6RwZfso5rtWXa6NtrcIhTakvnw83HaAwT0B0XoAyG2VbS9ebQcNbBJbinr900vvmBJpaZ"
