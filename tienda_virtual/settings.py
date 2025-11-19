@@ -91,19 +91,20 @@ WSGI_APPLICATION = 'tienda_virtual.wsgi.application'
 
 # Database
 
+DB_USER = os.getenv('DB_USER')
+DB_PASSWORD = os.getenv('DB_PASSWORD')
+DB_HOST = os.getenv('DB_HOST')
+DB_PORT = os.getenv('DB_PORT', '5432')
+DB_NAME = os.getenv('DB_NAME')
+
+LOCAL_DB_URL = f"postgres://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
 DATABASES = {
-
-    'default': {
-
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST', '127.0.0.1'),
-        'PORT': os.getenv('DB_PORT', '5432'),
-
-    }
-
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL', LOCAL_DB_URL),
+        conn_max_age=600,
+        ssl_require='RENDER' in os.environ, 
+    )
 }
 
 
