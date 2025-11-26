@@ -34,6 +34,27 @@ class Pedido(models.Model):
 
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
 
+    stripe_payment_intent_id = models.CharField(max_length=200, blank=True, null=True)
+    stripe_client_secret = models.CharField(max_length=200, blank=True, null=True)
+    estado_pago = models.CharField(
+        max_length=50,
+        default="pendiente",
+        choices=[
+            ("pendiente", "Pendiente"),
+            ("pagado", "Pagado"),
+            ("fallido", "Fallido"),
+        ]
+    )
+    @property
+    def total(self):
+        return (
+            self.subtotal
+            + self.impuestos
+            + self.coste_entrega
+            - self.descuento
+        )
+
+
 
     def __str__(self):
         return f'Pedido {self.numero_pedido} de {self.cliente.user.username}'

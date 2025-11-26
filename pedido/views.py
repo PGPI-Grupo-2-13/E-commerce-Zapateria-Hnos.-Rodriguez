@@ -2,11 +2,15 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse 
+from django.conf import settings
+from decimal import Decimal
+from django.utils import timezone
 
 # --- Importaciones de tus modelos ---
 from .models import Pedido, ItemPedido, Carrito, ItemCarrito
 from client.models import Cliente
 from product.models import Product, ProductSize
+from .stripe_api import create_payment_intent
 
 
 # --- Funciones Auxiliares ---
@@ -344,6 +348,65 @@ def carrito_compra(request):
     context.update(_get_carrito_context(request))
     return render(request, 'carrito_compra.html', context)
 
+def checkout_pedido(request, numero_pedido):
+    """
+    Vista para iniciar el pago de un pedido concreto.
+    """
+    pedido = get_object_or_404(Pedido, numero_pedido=numero_pedido)
+
+    # Si ya está pagado, lo mandamos directamente a la página de éxito
+    if pedido.estado_pago == "pagado":
+        return redirect("pedido_pago_exito", numero_pedido=numero_pedido)
+
+    # Si aún no hemos creado el PaymentIntent en Stripe, lo creamos ahora
+    if not pedido.stripe_payment_intent_id:
+        payment_intent = create_payment_intent(pedido)
+
+        if payment_intent is None:
+            # Algo fue mal con Stripe
+            contexto_error = {
+                "pedido": pedido,
+                "error": "No se pudo iniciar el pago con Stripe. Inténtalo más tarde."
+            }
+            return render(request, "pago_error.html", contexto_error)
+
+        pedido.stripe_payment_intent_id = payment_intent.id
+        pedido.stripe_client_secret = payment_intent.client_secret
+        pedido.save()
+
+    context = {
+        "pedido": pedido,
+        "stripe_public_key": settings.STRIPE_PUBLIC_KEY,
+        "client_secret": pedido.stripe_client_secret,
+    }
+    return render(request, "pasarela_pago.html", context)
+
+
+def pedido_pago_exito(request, numero_pedido):
+    """
+    Vista que se muestra cuando Stripe confirma el pago correctamente.
+    """
+    pedido = get_object_or_404(Pedido, numero_pedido=numero_pedido)
+
+    # Actualizamos estados
+    pedido.estado_pago = "pagado"
+    pedido.estado = Pedido.EstadoPedido.PAGADO
+    pedido.save()
+
+    return render(request, "pago_exito.html", {"pedido": pedido})
+
+
+def pedido_pago_error(request, numero_pedido):
+    """
+    Vista a la que redirigimos si algo falla en el pago.
+    """
+    pedido = get_object_or_404(Pedido, numero_pedido=numero_pedido)
+
+    pedido.estado_pago = "fallido"
+    pedido.save()
+
+    return render(request, "pago_error.html", {"pedido": pedido})
+
 
 @login_required
 def listado_pedidos(request):
@@ -369,3 +432,58 @@ def detalle_pedido(request, pedido_id):
     context = {'pedido': pedido, 'items': items, 'total': pedido.total}
     context.update(_get_carrito_context(request))
     return render(request, 'detalles_pedido.html', context)
+
+@login_required
+def crear_pedido_desde_carrito(request):
+    """
+    Crea un Pedido a partir del Carrito actual
+    y redirige al checkout de Stripe.
+    """
+    carrito = _get_or_create_carrito(request)
+
+    if not carrito or carrito.get_cantidad_items() == 0:
+        messages.error(request, "Tu carrito está vacío.")
+        return redirect('carrito_compra')
+
+    # Obtener cliente
+    try:
+        cliente = Cliente.objects.get(user=request.user)
+    except Cliente.DoesNotExist:
+        messages.error(request, "No tienes un perfil de cliente asociado.")
+        return redirect('carrito_compra')
+
+    # Generar número de pedido único "académico"
+    numero_pedido = f"PED-{cliente.id}-{int(timezone.now().timestamp())}"
+
+    subtotal = carrito.get_total()
+    envio = Decimal("5.00") if subtotal > 0 and subtotal < 50 else Decimal("0.00")
+    impuestos = Decimal("0.00")
+    descuento = Decimal("0.00")
+
+    # Crear el pedido
+    pedido = Pedido.objects.create(
+        cliente=cliente,
+        numero_pedido=numero_pedido,
+        subtotal=subtotal,
+        impuestos=impuestos,
+        coste_entrega=envio,
+        descuento=descuento,
+        direccion_envio=getattr(cliente, "direccion", ""),
+        telefono=getattr(cliente, "telefono", ""),
+    )
+
+    # Pasar los items del carrito al pedido
+    for item in carrito.itemcarrito_set.select_related('producto'):
+        ItemPedido.objects.create(
+            pedido=pedido,
+            producto=item.producto,
+            talla=item.talla,
+            cantidad=item.cantidad,
+            precio_unitario=item.producto.precio_final,
+        )
+
+    # Vaciar carrito (los productos ya están en el pedido)
+    carrito.itemcarrito_set.all().delete()
+
+    # Redirigir al checkout de Stripe
+    return redirect('checkout_pedido', numero_pedido=pedido.numero_pedido)

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Pago del pedido {{ pedido.numero_pedido }}</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" 
+          rel="stylesheet">
+
+    <style>
+        body {
+            background: #f7f8fa;
+            font-family: "Segoe UI", sans-serif;
+        }
+
+        .payment-card {
+            max-width: 520px;
+            margin: 60px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0px 2px 12px rgba(0,0,0,0.08);
+        }
+
+        #card-element {
+            padding: 12px;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+
+        #submit {
+            background: #0d6efd;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            color: white;
+            font-size: 18px;
+            border-radius: 8px;
+            transition: 0.2s;
+        }
+
+        #submit:hover {
+            background: #0b5ed7;
+        }
+
+        .order-summary {
+            background: #f1f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .total-price {
+            font-size: 20px;
+            font-weight: bold;
+            color: #0d6efd;
+        }
+
+        .logo-area {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .logo-area img {
+            width: 110px;
+            opacity: 0.95;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="payment-card">
+
+        <div class="logo-area">
+            <img src="https://cdn-icons-png.flaticon.com/512/3523/3523063.png" alt="Shop Logo">
+        </div>
+
+        <h3 class="text-center mb-4">Pago del Pedido</h3>
+
+        <div class="order-summary">
+            <p><strong>Número de pedido:</strong> {{ pedido.numero_pedido }}</p>
+            <p><strong>Subtotal:</strong> {{ pedido.subtotal }} €</p>
+            <p><strong>Impuestos:</strong> {{ pedido.impuestos }} €</p>
+            <p><strong>Envío:</strong> {{ pedido.coste_entrega }} €</p>
+            <p><strong>Descuento:</strong> {{ pedido.descuento }} €</p>
+            <hr>
+            <p class="total-price">Total: {{ pedido.total }} €</p>
+        </div>
+
+        <form id="payment-form">
+            <label class="form-label fw-bold">Tarjeta de crédito o débito</label>
+            <div id="card-element" class="mb-3"></div>
+
+            <button id="submit">
+                <i class="fas fa-lock me-2"></i>
+                Pagar Ahora
+            </button>
+
+            <div id="error-message" class="text-danger mt-3"></div>
+        </form>
+    </div>
+
+    <!-- Stripe -->
+    <script src="https://js.stripe.com/v3/"></script>
+
+    <!-- Font Awesome (para icono del candado) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+    <script>
+        const stripe = Stripe("{{ stripe_public_key }}");
+        const elements = stripe.elements();
+        const cardElement = elements.create("card", {
+            hidePostalCode: true
+        });
+        cardElement.mount("#card-element");
+
+        const form = document.getElementById("payment-form");
+        const clientSecret = "{{ client_secret }}";
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            document.getElementById("submit").disabled = true;
+
+            const result = await stripe.confirmCardPayment(clientSecret, {
+                payment_method: {
+                    card: cardElement,
+                }
+            });
+
+            if (result.error) {
+                document.getElementById("error-message").innerHTML = result.error.message;
+                document.getElementById("submit").disabled = false;
+            } else {
+                if (result.paymentIntent.status === "succeeded") {
+                    window.location.href = "{% url 'pedido_pago_exito' pedido.numero_pedido %}";
+                } else {
+                    window.location.href = "{% url 'pedido_pago_error' pedido.numero_pedido %}";
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>
