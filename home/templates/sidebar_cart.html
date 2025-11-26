@@ -123,21 +123,30 @@
         border-radius: 6px;
         padding: 2px;
         border: 1px solid #444;
+        overflow: hidden;
     }
-    
-    .qty-label {
-        font-size: 10px;
-        color: #888;
-        padding-left: 6px;
-        margin-right: 4px;
-        text-transform: uppercase;
+
+    .qty-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: transparent;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+    .qty-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
     }
 
     .qty-input {
         background: transparent;
         border: none;
         color: #fff;
-        width: 35px;
+        width: 40px;
         text-align: center;
         font-size: 14px;
         font-weight: bold;
@@ -151,7 +160,10 @@
         -webkit-appearance: none;
         margin: 0;
     }
-    .qty-input[type=number] { -moz-appearance: textfield; }
+    .qty-input[type=number] {
+        -moz-appearance: textfield;
+        appearance: textfield;
+    }
 
     /* Precio */
     .cart-item-price {
@@ -233,9 +245,14 @@
                         <form action="{% url 'actualizar_cantidad_carrito' item.id %}" method="POST">
                             {% csrf_token %}
                             <div class="qty-wrapper">
-                                <span class="qty-label">Cant</span>
+                                <button type="button" class="qty-btn" data-change="-1">
+                                    <i class="fas fa-minus"></i>
+                                </button>
                                 <input type="number" name="cantidad" value="{{ item.cantidad }}" min="1" max="{{ item.producto.stock }}" 
                                        class="qty-input" onchange="this.form.submit()">
+                                <button type="button" class="qty-btn" data-change="1">
+                                    <i class="fas fa-plus"></i>
+                                </button>
                             </div>
                         </form>
 
@@ -325,10 +342,6 @@
             const formData = new FormData(form);
             const url = form.action;
             
-            // Efecto visual de carga
-            cartSidebarEl.style.opacity = '0.6';
-            cartSidebarEl.style.pointerEvents = 'none';
-
             try {
                 const response = await fetch(url, {
                     method: 'POST',
@@ -354,10 +367,6 @@
                 }
             } catch (error) {
                 console.error('Error de conexión:', error);
-            } finally {
-                // Quitar efecto de carga
-                cartSidebarEl.style.opacity = '1';
-                cartSidebarEl.style.pointerEvents = 'auto';
             }
         }
 
@@ -419,6 +428,22 @@
                         sendCartUpdate(form);
                     };
                     form.onsubmit = (e) => { e.preventDefault(); sendCartUpdate(form); };
+
+                    const qtyButtons = form.querySelectorAll('.qty-btn');
+                    qtyButtons.forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const change = parseInt(btn.dataset.change, 10);
+                            const min = parseInt(qtyInput.min, 10) || 1;
+                            const max = parseInt(qtyInput.max, 10) || Infinity;
+                            const current = parseInt(qtyInput.value, 10) || min;
+                            const nextValue = Math.min(Math.max(current + change, min), max);
+
+                            if (nextValue !== current) {
+                                qtyInput.value = nextValue;
+                                sendCartUpdate(form);
+                            }
+                        });
+                    });
                 }
                 
                 // Detectar botón eliminar
