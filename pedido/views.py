@@ -7,6 +7,8 @@ from decimal import Decimal
 from django.utils import timezone
 
 # --- Importaciones de tus modelos ---
+from .forms import CheckoutForm 
+from django.contrib.auth.models import User
 from .models import Pedido, ItemPedido, Carrito, ItemCarrito
 from client.models import Cliente
 from product.models import Product, ProductSize
@@ -410,6 +412,9 @@ def pedido_pago_error(request, numero_pedido):
 
 @login_required
 def listado_pedidos(request):
+    if not request.user.is_authenticated:
+        messages.info(request, "Como invitado no tienes un historial de pedidos. Revisa tu correo para ver el detalle.")
+        return redirect('product:product_list')
     try:
         cliente = Cliente.objects.get(user=request.user)
         pedidos = Pedido.objects.filter(cliente=cliente).order_by('-fecha_creacion')
@@ -433,11 +438,24 @@ def detalle_pedido(request, pedido_id):
     context.update(_get_carrito_context(request))
     return render(request, 'detalles_pedido.html', context)
 
-@login_required
+# Mantenemos esta función auxiliar igual que antes
+def _get_cliente_invitado():
+    user, created = User.objects.get_or_create(
+        username="invitado_anonimo",
+        defaults={
+            'first_name': 'Cliente', 'last_name': 'Invitado', 'email': 'invitado@tienda.com'
+        }
+    )
+    if created:
+        user.set_unusable_password()
+        user.save()
+    cliente, _ = Cliente.objects.get_or_create(user=user)
+    return cliente
+
 def crear_pedido_desde_carrito(request):
     """
-    Crea un Pedido a partir del Carrito actual
-    y redirige al checkout de Stripe.
+    1. Muestra formulario de datos.
+    2. Recibe datos, asigna usuario (real o invitado) y crea el pedido.
     """
     carrito = _get_or_create_carrito(request)
 
@@ -445,45 +463,77 @@ def crear_pedido_desde_carrito(request):
         messages.error(request, "Tu carrito está vacío.")
         return redirect('carrito_compra')
 
-    # Obtener cliente
-    try:
-        cliente = Cliente.objects.get(user=request.user)
-    except Cliente.DoesNotExist:
-        messages.error(request, "No tienes un perfil de cliente asociado.")
-        return redirect('carrito_compra')
+    # Preparamos valores iniciales si el usuario ya está logueado
+    initial_data = {}
+    if request.user.is_authenticated:
+        try:
+            cliente = Cliente.objects.get(user=request.user)
+            initial_data = {
+                'direccion': getattr(cliente, 'direccion', ''),
+                'ciudad': getattr(cliente, 'ciudad', ''),
+                'codigo_postal': getattr(cliente, 'codigo_postal', ''),
+                'telefono': getattr(cliente, 'telefono', ''),
+            }
+        except Cliente.DoesNotExist:
+            pass
 
-    # Generar número de pedido único "académico"
-    numero_pedido = f"PED-{cliente.id}-{int(timezone.now().timestamp())}"
+    # --- PROCESO DEL FORMULARIO ---
+    if request.method == 'POST':
+        form = CheckoutForm(request.POST)
+        if form.is_valid():
+            # Extraemos los datos limpios del formulario
+            datos = form.cleaned_data
+            direccion_completa = f"{datos['direccion']}, {datos['ciudad']}, {datos['codigo_postal']}"
+            telefono = datos['telefono']
 
-    subtotal = carrito.get_total()
-    envio = Decimal("5.00") if subtotal > 0 and subtotal < 50 else Decimal("0.00")
-    impuestos = Decimal("0.00")
-    descuento = Decimal("0.00")
+            # Determinamos quién es el cliente
+            if request.user.is_authenticated:
+                try:
+                    cliente_pedido = Cliente.objects.get(user=request.user)
+                except Cliente.DoesNotExist:
+                    messages.error(request, "Error con tu usuario.")
+                    return redirect('carrito_compra')
+            else:
+                # AQUÍ USAMOS TU LÓGICA DE INVITADO
+                cliente_pedido = _get_cliente_invitado()
 
-    # Crear el pedido
-    pedido = Pedido.objects.create(
-        cliente=cliente,
-        numero_pedido=numero_pedido,
-        subtotal=subtotal,
-        impuestos=impuestos,
-        coste_entrega=envio,
-        descuento=descuento,
-        direccion_envio=getattr(cliente, "direccion", ""),
-        telefono=getattr(cliente, "telefono", ""),
-    )
+            # --- CREACIÓN DEL PEDIDO ---
+            numero_pedido = f"PED-{cliente_pedido.id}-{int(timezone.now().timestamp())}"
+            subtotal = carrito.get_total()
+            envio = Decimal("5.00") if subtotal > 0 and subtotal < 50 else Decimal("0.00")
+            
+            pedido = Pedido.objects.create(
+                cliente=cliente_pedido,
+                numero_pedido=numero_pedido,
+                subtotal=subtotal,
+                impuestos=Decimal("0.00"),
+                coste_entrega=envio,
+                descuento=Decimal("0.00"),
+                # Guardamos los datos que escribió en el formulario
+                direccion_envio=direccion_completa,
+                telefono=telefono,
+            )
 
-    # Pasar los items del carrito al pedido
-    for item in carrito.itemcarrito_set.select_related('producto'):
-        ItemPedido.objects.create(
-            pedido=pedido,
-            producto=item.producto,
-            talla=item.talla,
-            cantidad=item.cantidad,
-            precio_unitario=item.producto.precio_final,
-        )
+            # Movemos items del carrito al pedido
+            for item in carrito.itemcarrito_set.select_related('producto'):
+                ItemPedido.objects.create(
+                    pedido=pedido,
+                    producto=item.producto,
+                    talla=item.talla,
+                    cantidad=item.cantidad,
+                    precio_unitario=item.producto.precio_final,
+                )
 
-    # Vaciar carrito (los productos ya están en el pedido)
-    carrito.itemcarrito_set.all().delete()
+            # Vaciamos carrito
+            carrito.itemcarrito_set.all().delete()
 
-    # Redirigir al checkout de Stripe
-    return redirect('checkout_pedido', numero_pedido=pedido.numero_pedido)
+            # Redirigimos al pago
+            return redirect('checkout_pedido', numero_pedido=pedido.numero_pedido)
+    else:
+        # Si es GET, mostramos el formulario (con datos rellenos si es usuario registrado)
+        form = CheckoutForm(initial=initial_data)
+
+    return render(request, 'checkout_datos.html', {
+        'form': form, 
+        'carrito': carrito
+    })
