@@ -3,7 +3,6 @@ from client.models import Cliente
 from seeder_flag.models import SeederStatus
 from django.contrib.auth.models import User
 from faker import Faker
-import random
 
 class Command(BaseCommand):
     help = 'Seed the database with sample clients'
@@ -23,47 +22,52 @@ class Command(BaseCommand):
         
         self.stdout.write(self.style.WARNING(f'Creating {number + 1} clients...'))
 
-        user, created = User.objects.get_or_create(
+        # --- CLIENTE 1 (Usuario fijo) ---
+        user, user_created = User.objects.get_or_create(
             username='cliente1',
             defaults={
                 'email': 'cliente1@example.com'
             }
         )
-        if created:
+        
+        # Si el usuario se acaba de crear, la señal ya creó un Cliente vacío.
+        # Si el usuario ya existía, obtenemos su cliente.
+        if user_created:
             user.set_password('password123')
             user.save()
 
-            Cliente.objects.get_or_create(
-                user=user,
-                defaults={
-                    'telefono': fake.phone_number()[:15],
-                    'direccion': fake.address()[:50],
-                    'ciudad': fake.city()[:50],
-                    'codigo_postal': fake.postcode()[:50]
-                }
-            )
+        # Actualizamos los datos del cliente existente (creado por la señal o previo)
+        cliente, _ = Cliente.objects.get_or_create(user=user)
+        cliente.telefono = fake.phone_number()[:15]
+        cliente.direccion = fake.address()[:50]
+        cliente.ciudad = fake.city()[:50]
+        cliente.codigo_postal = fake.postcode()[:50]
+        cliente.save()
         
+        # --- RESTO DE CLIENTES (Bucle) ---
         for i in range(number):
-            # Crear usuario
             username = fake.user_name()
             email = fake.email()
 
             if User.objects.filter(username=username).exists():
                 continue
 
+            # Al crear el user, la señal en models.py CREA automáticamente el Cliente
             user = User.objects.create_user(
                 username=username,
                 email=email,
                 password='password123'
             )
 
-            Cliente.objects.create(
-                user=user,
-                telefono=fake.phone_number()[:15],
-                direccion=fake.address()[:50],
-                ciudad=fake.city()[:50],
-                codigo_postal=fake.postcode()[:50]
-            )
+            # En vez de crear, obtenemos el cliente que la señal acaba de generar
+            cliente = Cliente.objects.get(user=user)
+            
+            # Y actualizamos sus campos
+            cliente.telefono = fake.phone_number()[:15]
+            cliente.direccion = fake.address()[:50]
+            cliente.ciudad = fake.city()[:50]
+            cliente.codigo_postal = fake.postcode()[:50]
+            cliente.save()
 
         status.executed = True
         status.save()
