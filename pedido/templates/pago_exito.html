@@ -85,8 +85,15 @@
             </p>
 
             <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-                <a href="{% url 'listado_pedidos' %}" class="btn btn-dark btn-lg px-5 fw-bold">
-                    Ver mis pedidos <i class="fas fa-arrow-right ms-2"></i>
+                
+                {% if user.is_authenticated %}
+                    <a href="{% url 'listado_pedidos' %}" class="btn btn-dark btn-lg px-4 fw-bold">
+                        Ver mis pedidos <i class="fas fa-list ms-2"></i>
+                    </a>
+                {% endif %}
+
+                <a href="{% url 'home' %}" class="btn btn-outline-dark btn-lg px-4 fw-bold">
+                    Seguir Comprando <i class="fas fa-shopping-bag ms-2"></i>
                 </a>
             </div>
         </div>
