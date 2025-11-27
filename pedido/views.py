@@ -9,6 +9,7 @@ from django.db.models import F
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
+from threading import Thread
 
 from .forms import CheckoutForm, OrderTrackingForm
 from django.contrib.auth.models import User
@@ -132,17 +133,22 @@ def enviar_correo_confirmacion_pedido(pedido):
         # Asunto del correo
         subject = f'Confirmación de Pedido #{pedido.numero_pedido} - Zapatería Hnos. Rodríguez'
         
-        # Enviar el correo
-        send_mail(
-            subject=subject,
-            message='',  # Versión texto plano (opcional)
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email_cliente],
-            html_message=html_message,
-            fail_silently=False,
-        )
+        def _tarea_envio():
+            """Ejecuta el envío real fuera del hilo principal."""
+            try:
+                send_mail(
+                    subject=subject,
+                    message='',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[email_cliente],
+                    html_message=html_message,
+                    fail_silently=False,
+                )
+                print(f"[Email] Correo de confirmación enviado a {email_cliente}")
+            except Exception as e:
+                print(f"[Email] Error al enviar correo en hilo: {str(e)}")
         
-        print(f"[Email] Correo de confirmación enviado a {email_cliente}")
+        Thread(target=_tarea_envio, daemon=True).start()
         return True
         
     except Exception as e:
