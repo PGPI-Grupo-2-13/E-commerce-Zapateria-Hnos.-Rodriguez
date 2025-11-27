@@ -20,4 +20,4 @@ class OrderTrackingForm(forms.Form):
         label='Teléfono utilizado en la compra',
         max_length=20,
         widget=forms.TextInput(attrs={'class': 'form-control'})
-    
+    )
