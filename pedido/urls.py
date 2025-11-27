@@ -17,6 +17,7 @@ urlpatterns = [
         views.pedido_pago_error,
         name="pedido_pago_error"
     ),
+    path("rastreo/", views.rastrear_pedido, name="rastrear_pedido"),
 
     path(
         "mis-pedidos/",
