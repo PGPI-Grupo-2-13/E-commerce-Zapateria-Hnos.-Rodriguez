@@ -5,12 +5,12 @@ from django.http import JsonResponse
 from django.conf import settings
 from decimal import Decimal
 from django.utils import timezone
+from django.db.models import F  
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 
-# --- Importaciones de tus modelos ---
-from .forms import CheckoutForm 
+from .forms import CheckoutForm, OrderTrackingForm
 from django.contrib.auth.models import User
 from .models import Pedido, ItemPedido, Carrito, ItemCarrito
 from client.models import Cliente
@@ -18,8 +18,6 @@ from product.models import Product, ProductSize
 from .stripe_api import create_payment_intent
 import uuid
 
-
-# --- Funciones Auxiliares ---
 
 def _get_carrito_context(request):
     """Función auxiliar para obtener el carrito del usuario o sesión"""
@@ -41,33 +39,26 @@ def _get_or_create_carrito(request):
     carrito = None
     
     if request.user.is_authenticated:
-        # LOGICA PARA USUARIO REGISTRADO
         try:
             cliente = Cliente.objects.get(user=request.user) 
         except Cliente.DoesNotExist:
             cliente = Cliente.objects.create(user=request.user, direccion='', ciudad='', codigo_postal='') 
         
-        # Buscamos carritos existentes para este cliente
         qs = Carrito.objects.filter(cliente=cliente)
         
         if qs.exists():
-            # Si existe uno o más, cogemos el primero (el más antiguo)
             carrito = qs.first()
-            # ¡AUTOCORRECCIÓN! Si hay duplicados, los borramos para evitar el error 500
             if qs.count() > 1:
                 for duplicado in qs[1:]:
                     duplicado.delete()
         else:
-            # Si no existe, lo creamos
             carrito = Carrito.objects.create(cliente=cliente, session_key=None)
         
-        # Asegurar que no tenga session_key si es usuario logueado
         if carrito.session_key:
             carrito.session_key = None
             carrito.save()
 
     else:
-        # LOGICA PARA USUARIO ANÓNIMO
         if not request.session.session_key:
             request.session.create()
         
@@ -204,7 +195,6 @@ def agregar_al_carrito(request, producto_id):
         
         carrito = _get_or_create_carrito(request)
         
-        # Agregar item
         item, created = ItemCarrito.objects.get_or_create(
             carrito=carrito,
             producto=producto,
@@ -229,12 +219,10 @@ def agregar_al_carrito(request, producto_id):
         else:
             unidades_a_restar = cantidad
 
-        # 2. Restar Stock
         if stock_valido and unidades_a_restar > 0:
             stock_object.stock -= unidades_a_restar
             stock_object.save()
         
-        # Respuesta AJAX (para el futuro si lo implementas en agregar)
         if _is_ajax(request):
             return JsonResponse({'success': True, 'message': 'Producto añadido.'})
             
@@ -279,7 +267,6 @@ def actualizar_cantidad_carrito(request, item_id):
     stock_disponible_real = objeto_stock.stock + cantidad_original 
     
     if nueva_cantidad == 0:
-        # ELIMINAR
         try:
             objeto_stock.stock += cantidad_original
             objeto_stock.save() 
@@ -293,13 +280,11 @@ def actualizar_cantidad_carrito(request, item_id):
         messages.success(request, 'Item eliminado.')
     
     elif nueva_cantidad > stock_disponible_real:
-        # STOCK INSUFICIENTE
         msg = f'Stock insuficiente. Máximo: {stock_disponible_real}'
         if _is_ajax(request): return JsonResponse({'success': False, 'message': msg, 'max_qty': stock_disponible_real}, status=400)
         messages.error(request, msg)
         
     else:
-        # ACTUALIZAR
         diferencia = nueva_cantidad - cantidad_original
         try:
             objeto_stock.stock -= diferencia
@@ -325,11 +310,9 @@ def eliminar_del_carrito(request, item_id):
     if request.method == 'POST':
         carrito = _get_or_create_carrito(request)
         
-        # 1. Obtener ítem de forma segura
         try:
             item = ItemCarrito.objects.select_related('producto').get(id=item_id, carrito=carrito) 
         except ItemCarrito.DoesNotExist:
-            # Si ya no existe, devolvemos éxito al AJAX para que se actualice la UI, o redirigimos
             if _is_ajax(request):
                 return JsonResponse({'success': True, 'message': 'El producto ya no estaba en el carrito.'})
             messages.warning(request, 'El producto ya no se encuentra en el carrito.')
@@ -338,7 +321,6 @@ def eliminar_del_carrito(request, item_id):
         nombre_producto = item.producto.nombre
         cantidad_a_devolver = item.cantidad
 
-        # 2. Lógica crítica con manejo de errores
         try:
             objeto_stock = _get_stock_object(request, item)
             objeto_stock.stock += cantidad_a_devolver
@@ -352,14 +334,12 @@ def eliminar_del_carrito(request, item_id):
             messages.error(request, 'Error del servidor al eliminar el producto.')
             return redirect('carrito_compra')
 
-        # 3. Respuesta Exitosa
         if _is_ajax(request):
             return JsonResponse({'success': True, 'message': f'{nombre_producto} eliminado.'})
             
         messages.success(request, f'"{nombre_producto}" eliminado del carrito.')
         return redirect('carrito_compra')
     
-    # Si no es POST
     if _is_ajax(request): return JsonResponse({'success': False}, status=405)
     return redirect('carrito_compra')
 
@@ -410,16 +390,13 @@ def checkout_pedido(request, numero_pedido):
     """
     pedido = get_object_or_404(Pedido, numero_pedido=numero_pedido)
 
-    # Si ya está pagado, lo mandamos directamente a la página de éxito
     if pedido.estado_pago == "pagado":
         return redirect("pedido_pago_exito", numero_pedido=numero_pedido)
 
-    # Si aún no hemos creado el PaymentIntent en Stripe, lo creamos ahora
     if not pedido.stripe_payment_intent_id:
         payment_intent = create_payment_intent(pedido)
 
         if payment_intent is None:
-            # Algo fue mal con Stripe
             contexto_error = {
                 "pedido": pedido,
                 "error": "No se pudo iniciar el pago con Stripe. Inténtalo más tarde."
@@ -444,7 +421,6 @@ def pedido_pago_exito(request, numero_pedido):
     """
     pedido = get_object_or_404(Pedido, numero_pedido=numero_pedido)
 
-    # Actualizamos estados
     pedido.estado_pago = "pagado"
     pedido.estado = Pedido.EstadoPedido.PAGADO
     pedido.save()
@@ -489,7 +465,11 @@ def detalle_pedido(request, pedido_id):
     except Cliente.DoesNotExist:
         return redirect('listado_pedidos')
     pedido = get_object_or_404(Pedido, id=pedido_id, cliente=cliente)
-    items = ItemPedido.objects.filter(pedido=pedido)
+    
+    items = ItemPedido.objects.filter(pedido=pedido).annotate(
+        subtotal_item=F('cantidad') * F('precio_unitario')
+    )
+    
     context = {'pedido': pedido, 'items': items, 'total': pedido.total}
     context.update(_get_carrito_context(request))
     return render(request, 'detalles_pedido.html', context)
@@ -546,7 +526,6 @@ def crear_pedido_desde_carrito(request):
         messages.error(request, "Tu carrito está vacío.")
         return redirect('carrito_compra')
 
-    # Preparamos valores iniciales si el usuario ya está logueado
     initial_data = {}
     if request.user.is_authenticated:
         try:
@@ -567,16 +546,13 @@ def crear_pedido_desde_carrito(request):
                 'email': request.user.email or '',
             }
 
-    # --- PROCESO DEL FORMULARIO ---
     if request.method == 'POST':
         form = CheckoutForm(request.POST)
         if form.is_valid():
-            # Extraemos los datos limpios del formulario
             datos = form.cleaned_data
             direccion_completa = f"{datos['direccion']}, {datos['ciudad']}, {datos['codigo_postal']}"
             telefono = datos['telefono']
 
-            # Determinamos quién es el cliente
             if request.user.is_authenticated:
                 try:
                     cliente_pedido = Cliente.objects.get(user=request.user)
@@ -602,7 +578,6 @@ def crear_pedido_desde_carrito(request):
                 # Pasamos los datos del formulario a la función
                 cliente_pedido = _get_cliente_invitado(datos)
 
-            # --- CREACIÓN DEL PEDIDO ---
             numero_pedido = f"PED-{cliente_pedido.id}-{int(timezone.now().timestamp())}"
             subtotal = carrito.get_total()
             envio = Decimal("5.00") if subtotal > 0 and subtotal < 50 else Decimal("0.00")
@@ -614,12 +589,10 @@ def crear_pedido_desde_carrito(request):
                 impuestos=Decimal("0.00"),
                 coste_entrega=envio,
                 descuento=Decimal("0.00"),
-                # Guardamos los datos que escribió en el formulario
                 direccion_envio=direccion_completa,
                 telefono=telefono,
             )
 
-            # Movemos items del carrito al pedido
             for item in carrito.itemcarrito_set.select_related('producto'):
                 ItemPedido.objects.create(
                     pedido=pedido,
@@ -629,16 +602,45 @@ def crear_pedido_desde_carrito(request):
                     precio_unitario=item.producto.precio_final,
                 )
 
-            # Vaciamos carrito
             carrito.itemcarrito_set.all().delete()
 
-            # Redirigimos al pago
             return redirect('checkout_pedido', numero_pedido=pedido.numero_pedido)
     else:
-        # Si es GET, mostramos el formulario (con datos rellenos si es usuario registrado)
         form = CheckoutForm(initial=initial_data)
 
     return render(request, 'checkout_datos.html', {
         'form': form, 
         'carrito': carrito
     })
+
+def rastrear_pedido(request):
+    if request.method == 'POST':
+        form = OrderTrackingForm(request.POST)
+        if form.is_valid():
+            numero_pedido = form.cleaned_data['numero_pedido']
+            telefono = form.cleaned_data['telefono']
+            
+            pedido = Pedido.objects.filter(
+                numero_pedido=numero_pedido, 
+                telefono=telefono
+            ).first()
+
+            if pedido:
+                items = ItemPedido.objects.filter(pedido=pedido).annotate(
+                    subtotal_item=F('cantidad') * F('precio_unitario')
+                )
+                context = {
+                    'pedido': pedido, 
+                    'items': items, 
+                    'total': pedido.total
+                }
+                context.update(_get_carrito_context(request))
+                return render(request, 'detalles_pedido.html', context)
+            else:
+                messages.error(request, "No encontramos un pedido con ese número y teléfono.")
+    else:
+        form = OrderTrackingForm()
+
+    context = {'form': form}
+    context.update(_get_carrito_context(request))
+    return render(request, 'rastrear_pedido.html', context)
