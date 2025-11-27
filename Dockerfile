@@ -24,7 +24,7 @@ EXPOSE 8000
 
 CMD sh -c  "python manage.py migrate && \
     python manage.py collectstatic --noinput && \
-    python manage.py flush --no-input \
+    python manage.py flush --no-input && \
     python manage.py seed_clients && \
     python manage.py seed_products && \
     gunicorn --bind 0.0.0.0:8000 --workers 3 tienda_virtual.wsgi:application"
