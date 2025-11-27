@@ -5,6 +5,9 @@ from django.http import JsonResponse
 from django.conf import settings
 from decimal import Decimal
 from django.utils import timezone
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.conf import settings
 
 # --- Importaciones de tus modelos ---
 from .forms import CheckoutForm 
@@ -13,6 +16,7 @@ from .models import Pedido, ItemPedido, Carrito, ItemCarrito
 from client.models import Cliente
 from product.models import Product, ProductSize
 from .stripe_api import create_payment_intent
+import uuid
 
 
 # --- Funciones Auxiliares ---
@@ -103,6 +107,56 @@ def _is_ajax(request):
 
 
 # --- Vistas de Carrito ---
+
+def enviar_correo_confirmacion_pedido(pedido):
+    """
+    Envía un correo de confirmación al cliente cuando se completa el pago.
+    """
+    try:
+        # Obtener el email del cliente
+        email_cliente = pedido.cliente.user.email
+        
+        # Si el cliente no tiene email, intentar obtenerlo del formulario
+        # o usar un email por defecto
+        if not email_cliente:
+            # Si es un usuario invitado, no podemos enviar correo
+            if pedido.cliente.user.username == "invitado_anonimo":
+                print(f"[Email] No se puede enviar correo: cliente invitado sin email")
+                return False
+            email_cliente = pedido.cliente.user.email
+        
+        if not email_cliente:
+            print(f"[Email] No se puede enviar correo: cliente sin email configurado")
+            return False
+        
+        # Obtener los items del pedido
+        items = pedido.items.all()
+        
+        # Renderizar el template del correo
+        html_message = render_to_string('confirmacion_pedido.html', {
+            'pedido': pedido,
+            'items': items,
+        })
+        
+        # Asunto del correo
+        subject = f'Confirmación de Pedido #{pedido.numero_pedido} - Zapatería Hnos. Rodríguez'
+        
+        # Enviar el correo
+        send_mail(
+            subject=subject,
+            message='',  # Versión texto plano (opcional)
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email_cliente],
+            html_message=html_message,
+            fail_silently=False,
+        )
+        
+        print(f"[Email] Correo de confirmación enviado a {email_cliente}")
+        return True
+        
+    except Exception as e:
+        print(f"[Email] Error al enviar correo: {str(e)}")
+        return False
 
 def agregar_al_carrito(request, producto_id):
     """Agregar producto al carrito y reducir el stock."""
@@ -395,6 +449,8 @@ def pedido_pago_exito(request, numero_pedido):
     pedido.estado = Pedido.EstadoPedido.PAGADO
     pedido.save()
 
+    enviar_correo_confirmacion_pedido(pedido)
+
     return render(request, "pago_exito.html", {"pedido": pedido})
 
 
@@ -438,18 +494,45 @@ def detalle_pedido(request, pedido_id):
     context.update(_get_carrito_context(request))
     return render(request, 'detalles_pedido.html', context)
 
-# Mantenemos esta función auxiliar igual que antes
-def _get_cliente_invitado():
-    user, created = User.objects.get_or_create(
-        username="invitado_anonimo",
-        defaults={
-            'first_name': 'Cliente', 'last_name': 'Invitado', 'email': 'invitado@tienda.com'
-        }
-    )
-    if created:
+# Modifica esta función para manejar el Cliente que ya fue creado por el signal
+def _get_cliente_invitado(datos_formulario):
+    if datos_formulario:
+        # Crear usuario anónimo único con los datos del formulario
+        timestamp = int(timezone.now().timestamp())
+        unique_id = str(uuid.uuid4())[:8]
+        username = f"anonimo_{timestamp}_{unique_id}"
+        
+        user = User.objects.create_user(
+            username=username,
+            email=datos_formulario.get('email', ''),
+            first_name=datos_formulario.get('nombre', ''),
+            last_name=datos_formulario.get('apellidos', ''),
+            password=None
+        )
         user.set_unusable_password()
         user.save()
-    cliente, _ = Cliente.objects.get_or_create(user=user)
+        
+        # El signal ya creó el Cliente, solo necesitamos obtenerlo y actualizarlo
+        cliente = Cliente.objects.get(user=user)
+        # Actualizamos los datos del cliente con los del formulario
+        cliente.direccion = datos_formulario.get('direccion', '')
+        cliente.ciudad = datos_formulario.get('ciudad', '')
+        cliente.codigo_postal = datos_formulario.get('codigo_postal', '')
+        cliente.telefono = datos_formulario.get('telefono', '')
+        cliente.save()
+    else:
+        # Comportamiento por defecto (por si acaso se usa en otro lugar)
+        user, created = User.objects.get_or_create(
+            username="invitado_anonimo",
+            defaults={
+                'first_name': 'Cliente', 'last_name': 'Invitado', 'email': 'invitado@tienda.com'
+            }
+        )
+        if created:
+            user.set_unusable_password()
+            user.save()
+        cliente, _ = Cliente.objects.get_or_create(user=user)
+    
     return cliente
 
 def crear_pedido_desde_carrito(request):
@@ -469,13 +552,20 @@ def crear_pedido_desde_carrito(request):
         try:
             cliente = Cliente.objects.get(user=request.user)
             initial_data = {
+                'nombre': request.user.first_name or '',
+                'apellidos': request.user.last_name or '',
                 'direccion': getattr(cliente, 'direccion', ''),
                 'ciudad': getattr(cliente, 'ciudad', ''),
                 'codigo_postal': getattr(cliente, 'codigo_postal', ''),
                 'telefono': getattr(cliente, 'telefono', ''),
+                'email': request.user.email or '',
             }
         except Cliente.DoesNotExist:
-            pass
+            initial_data = {
+                'nombre': request.user.first_name or '',
+                'apellidos': request.user.last_name or '',
+                'email': request.user.email or '',
+            }
 
     # --- PROCESO DEL FORMULARIO ---
     if request.method == 'POST':
@@ -490,12 +580,27 @@ def crear_pedido_desde_carrito(request):
             if request.user.is_authenticated:
                 try:
                     cliente_pedido = Cliente.objects.get(user=request.user)
+                    # Actualizamos los datos del cliente si el usuario los cambió
+                    cliente_pedido.direccion = datos['direccion']
+                    cliente_pedido.ciudad = datos['ciudad']
+                    cliente_pedido.codigo_postal = datos['codigo_postal']
+                    cliente_pedido.telefono = datos['telefono']
+                    cliente_pedido.save()
+                    
+                    # Actualizamos también el User si cambió nombre/apellidos/email
+                    if datos.get('nombre'):
+                        request.user.first_name = datos['nombre']
+                    if datos.get('apellidos'):
+                        request.user.last_name = datos['apellidos']
+                    if datos.get('email'):
+                        request.user.email = datos['email']
+                    request.user.save()
                 except Cliente.DoesNotExist:
                     messages.error(request, "Error con tu usuario.")
                     return redirect('carrito_compra')
             else:
-                # AQUÍ USAMOS TU LÓGICA DE INVITADO
-                cliente_pedido = _get_cliente_invitado()
+                # Pasamos los datos del formulario a la función
+                cliente_pedido = _get_cliente_invitado(datos)
 
             # --- CREACIÓN DEL PEDIDO ---
             numero_pedido = f"PED-{cliente_pedido.id}-{int(timezone.now().timestamp())}"

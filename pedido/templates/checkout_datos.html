@@ -110,6 +110,14 @@
                                 {% endif %}
                             </div>
 
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Correo electrónico</label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger small">{{ form.email.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
                             <button type="submit" class="btn btn-warning w-100 py-3 fw-bold shadow-sm text-dark">
                                 CONFIRMAR Y PAGAR <i class="fas fa-arrow-right ms-2"></i>
                             </button>
