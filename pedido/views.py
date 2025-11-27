@@ -377,7 +377,7 @@ def carrito_compra(request):
     items = ItemCarrito.objects.filter(carrito=carrito).select_related('producto') 
     
     subtotal = carrito.get_total()
-    envio = 5.00 if subtotal > 0 and subtotal < 50 else 0
+    envio = Decimal('5.00') if Decimal('0') < subtotal < Decimal('50') else Decimal('0')
     total = subtotal + envio
     
     context = {
