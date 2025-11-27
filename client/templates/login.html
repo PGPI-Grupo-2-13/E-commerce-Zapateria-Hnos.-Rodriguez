@@ -67,7 +67,7 @@
         <form method="post" action="">
           {% csrf_token %}
           <div class="mb-3">
-            <label for="username" class="form-label">Usuario</label>
+            <label for="username" class="form-label">Correo</label>
             <input id="username" name="username" type="text" class="form-control" required autofocus value="{{ request.POST.username|default:'' }}">
           </div>
 

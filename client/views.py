@@ -15,8 +15,6 @@ def register(request):
 		if form.is_valid():
 			user = form.save()
 			return redirect('client-login')
-		else:
-			messages.error(request, 'Por favor corrige los errores del formulario.')
 	else:
 		form = UserCreationForm()
 

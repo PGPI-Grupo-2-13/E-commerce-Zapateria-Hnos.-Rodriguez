@@ -55,18 +55,25 @@
           {% endif %}
 
           <div class="mb-3">
-            <label for="id_username" class="form-label">Usuario</label>
-            {{ form.username }}
+                  <label for="{{ form.username.id_for_label }}" class="form-label">Correo</label>
+                  <input type="email" name="{{ form.username.html_name }}" id="{{ form.username.id_for_label }}" class="form-control mx-auto d-block" style="max-width:400px;" value="{{ form.username.value|default_if_none:'' }}">
           </div>
 
           <div class="mb-3">
-            <label for="id_password1" class="form-label">Contraseña</label>
-            {{ form.password1 }}
+                  <label for="{{ form.password1.id_for_label }}" class="form-label">Contraseña</label>
+                  <input type="password" name="{{ form.password1.html_name }}" id="{{ form.password1.id_for_label }}" class="form-control mx-auto d-block" style="max-width:400px;">
+                  {% if form.password1.errors %}
+                    <div class="alert alert-danger mt-2" style="max-width:400px;margin:0 auto;">{{ form.password1.errors.0 }}</div>
+                  {% elif form.password2.errors %}
+                    <div class="alert alert-danger mt-2" style="max-width:400px;margin:0 auto;">{{ form.password2.errors.0 }}</div>
+                  {% elif form.non_field_errors %}
+                    <div class="alert alert-danger mt-2" style="max-width:400px;margin:0 auto;">{{ form.non_field_errors.0 }}</div>
+                  {% endif %}
           </div>
 
           <div class="mb-3">
-            <label for="id_password2" class="form-label">Repetir contraseña</label>
-            {{ form.password2 }}
+                  <label for="{{ form.password2.id_for_label }}" class="form-label">Repetir contraseña</label>
+                  <input type="password" name="{{ form.password2.html_name }}" id="{{ form.password2.id_for_label }}" class="form-control mx-auto d-block" style="max-width:400px;">
           </div>
 
           <div class="d-grid">
