@@ -1,13 +1,20 @@
 {% load static %}
 
 <style>
-    /* Estilos específicos del Navbar */
     .navbar-brand {
         font-weight: bold;
         letter-spacing: 0.5px;
     }
+
     .nav-btn-icon {
         font-size: 1.1rem;
+    }
+
+    @media (max-width: 991px) {
+        .search-form {
+            margin: 1rem 0;
+            width: 100%;
+        }
     }
 </style>
 
@@ -23,20 +30,31 @@
             <span class="navbar-toggler-icon"></span>
         </button>
 
-        <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-            <ul class="navbar-nav align-items-center">
-                <li class="nav-item">
-                    <button class="btn btn-warning ms-3 position-relative fw-bold" type="button" 
-                            data-bs-toggle="offcanvas" 
-                            data-bs-target="#cartSidebar" 
-                            aria-controls="cartSidebar">
+        <div class="collapse navbar-collapse" id="navbarNav">
+
+            <form class="d-flex mx-auto search-form" action="{% url 'product:product_list' %}" method="get"
+                style="max-width: 500px; width: 100%;">
+                <div class="input-group">
+                    <input class="form-control" type="search" name="search" placeholder="Buscar producto deseado"
+                        value="{{ search_query|default:'' }}" aria-label="Search">
+                    <button class="btn btn-warning" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+
+            <ul class="navbar-nav align-items-center ms-0 ms-lg-3">
+                <li class="nav-item w-100">
+                    <button class="btn btn-warning position-relative fw-bold w-100" type="button"
+                        data-bs-toggle="offcanvas" data-bs-target="#cartSidebar" aria-controls="cartSidebar">
                         <i class="fas fa-shopping-cart me-1"></i> Carrito
-                        
+
                         {% if carrito and carrito.itemcarrito_set.count > 0 %}
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">
-                                {{ carrito.itemcarrito_set.count }}
-                                <span class="visually-hidden">productos en carrito</span>
-                            </span>
+                        <span
+                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">
+                            {{ carrito.itemcarrito_set.count }}
+                            <span class="visually-hidden">productos en carrito</span>
+                        </span>
                         {% endif %}
                     </button>
                 </li>
