@@ -5,3 +5,15 @@ class CheckoutForm(forms.Form):
     ciudad = forms.CharField(label='Ciudad', max_length=100, widget=forms.TextInput(attrs={'class': 'form-control'}))
     codigo_postal = forms.CharField(label='Código Postal', max_length=10, widget=forms.TextInput(attrs={'class': 'form-control'}))
     telefono = forms.CharField(label='Teléfono', max_length=20, widget=forms.TextInput(attrs={'class': 'form-control'}))
+
+class OrderTrackingForm(forms.Form):
+    numero_pedido = forms.CharField(
+        label='Número de Pedido', 
+        max_length=120,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: PED-1-173...'})
+    )
+    telefono = forms.CharField(
+        label='Teléfono utilizado en la compra',
+        max_length=20,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
