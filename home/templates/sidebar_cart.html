@@ -203,6 +203,8 @@
     }
 </style>
 
+{% load static %}
+{% load pedido_filters %}
 <div class="offcanvas offcanvas-end offcanvas-cart shadow" tabindex="-1" id="cartSidebar" aria-labelledby="cartSidebarLabel" 
     data-bs-scroll="true" data-bs-backdrop="true">
     
@@ -257,7 +259,7 @@
                         </form>
 
                         <span class="cart-item-price">
-                            {% widthratio item.producto.precio_final 1 item.cantidad %} €
+                            {{ item.producto.precio_final|mul:item.cantidad|floatformat:2 }} €
                         </span>
                     </div>
                 </div>
