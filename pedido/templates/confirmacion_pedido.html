@@ -121,7 +121,7 @@
         <div class="success-icon">✓</div>
         
         <div class="greeting">
-            <p>Hola <strong>{{ pedido.cliente.user.get_full_name|default:pedido.cliente.user.username }},</strong></p>
+            <p>Hola <strong>{{ pedido.cliente.user.email|default:pedido.cliente.user.email }},</strong></p>
             <p>¡Gracias por tu compra! Tu pedido ha sido confirmado y el pago procesado correctamente.</p>
         </div>
 

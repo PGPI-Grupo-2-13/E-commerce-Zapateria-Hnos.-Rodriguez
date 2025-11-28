@@ -8,7 +8,6 @@ from django.utils import timezone
 from django.db.models import F  
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
-from django.conf import settings
 from threading import Thread
 
 from .forms import CheckoutForm, OrderTrackingForm
@@ -18,6 +17,7 @@ from client.models import Cliente
 from product.models import Product, ProductSize
 from .stripe_api import create_payment_intent
 import uuid
+import resend
 
 
 def _get_carrito_context(request):
@@ -106,7 +106,7 @@ def enviar_correo_confirmacion_pedido(pedido):
     """
     try:
         # Obtener el email del cliente
-        email_cliente = pedido.cliente.user.email
+        email_cliente = pedido.cliente.user.email 
         
         # Si el cliente no tiene email, intentar obtenerlo del formulario
         # o usar un email por defecto
@@ -136,17 +136,29 @@ def enviar_correo_confirmacion_pedido(pedido):
         def _tarea_envio():
             """Ejecuta el envío real fuera del hilo principal."""
             try:
-                send_mail(
-                    subject=subject,
-                    message='',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[email_cliente],
-                    html_message=html_message,
-                    fail_silently=False,
-                )
-                print(f"[Email] Correo de confirmación enviado a {email_cliente}")
+                # Configurar API Key
+                resend.api_key = settings.RESEND_API_KEY
+                
+                # REMITENTE: Obligatorio usar este si no tienes dominio
+                remitente_seguro = "onboarding@resend.dev"
+                
+                # En un proyecto real aquí iría [email_cliente].
+                destinatario_seguro = ["pgpi-2-13@outlook.es"] 
+
+                print(f"[Demo Uni] Redirigiendo correo de {email_cliente} a {destinatario_seguro} para demostración.")
+
+                params = {
+                    "from": remitente_seguro,
+                    "to": destinatario_seguro,
+                    "subject": subject,
+                    "html": html_message,
+                }
+
+                email = resend.Emails.send(params)
+                print(f"[Resend] Correo enviado con éxito. ID: {email.get('id')}")
+
             except Exception as e:
-                print(f"[Email] Error al enviar correo en hilo: {str(e)}")
+                print(f"[Resend] Error al enviar correo: {str(e)}")
         
         Thread(target=_tarea_envio, daemon=True).start()
         return True
