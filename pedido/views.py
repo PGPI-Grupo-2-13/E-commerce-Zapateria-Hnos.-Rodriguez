@@ -16,7 +16,7 @@ from .models import Pedido, ItemPedido, Carrito, ItemCarrito
 from client.models import Cliente
 from product.models import Product, ProductSize
 from .stripe_api import create_payment_intent
-import uuid
+import uuid, stripe
 try:
     import resend
 except Exception:
@@ -441,18 +441,20 @@ def checkout_pedido(request, numero_pedido):
 
 
 def pedido_pago_exito(request, numero_pedido):
-    """
-    Vista que se muestra cuando Stripe confirma el pago correctamente.
-    """
     pedido = get_object_or_404(Pedido, numero_pedido=numero_pedido)
 
-    pedido.estado_pago = "pagado"
-    pedido.estado = Pedido.EstadoPedido.PAGADO
-    pedido.save()
-
-    enviar_correo_confirmacion_pedido(pedido)
-
-    return render(request, "pago_exito.html", {"pedido": pedido})
+    if pedido.stripe_payment_intent_id:
+        try:
+            intent = stripe.PaymentIntent.retrieve(pedido.stripe_payment_intent_id)
+            if intent.status == 'succeeded':
+                pedido.estado_pago = "pagado"
+                pedido.estado = Pedido.EstadoPedido.PAGADO
+                pedido.save()
+                return render(request, "pago_exito.html", {"pedido": pedido})
+        except stripe.error.StripeError:
+            pass 
+    
+    return redirect('pedido_pago_error', numero_pedido=numero_pedido)
 
 
 def pedido_pago_error(request, numero_pedido):
