@@ -4,6 +4,18 @@ from django.contrib import messages
 from django.contrib.auth.forms import UserCreationForm
 
 
+def logout_view(request):
+	"""Cerrar sesión — permite GET para facilitar pruebas y enlaces simples.
+
+	Nota: en producción es más seguro usar POST. Esta vista acepta GET
+	para mantener compatibilidad con el comportamiento esperado por las pruebas.
+	"""
+	if request.method in ('POST', 'GET'):
+		logout(request)
+		return redirect('client-login')
+	return redirect('client-login')
+
+
 def register(request):
 	"""Registro de nuevo usuario usando UserCreationForm.
 
