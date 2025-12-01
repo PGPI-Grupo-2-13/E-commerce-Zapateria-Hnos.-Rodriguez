@@ -17,7 +17,10 @@ from client.models import Cliente
 from product.models import Product, ProductSize
 from .stripe_api import create_payment_intent
 import uuid
-import resend
+try:
+    import resend
+except Exception:
+    resend = None
 
 
 def _get_carrito_context(request):
@@ -136,14 +139,18 @@ def enviar_correo_confirmacion_pedido(pedido):
         def _tarea_envio():
             """Ejecuta el envío real fuera del hilo principal."""
             try:
+                if resend is None:
+                    print("[Resend] Paquete 'resend' no instalado; omitiendo envío de correo en entorno de pruebas.")
+                    return
+
                 # Configurar API Key
                 resend.api_key = settings.RESEND_API_KEY
-                
+
                 # REMITENTE: Obligatorio usar este si no tienes dominio
                 remitente_seguro = "onboarding@resend.dev"
-                
+
                 # En un proyecto real aquí iría [email_cliente].
-                destinatario_seguro = ["pgpi-2-13@outlook.es"] 
+                destinatario_seguro = ["pgpi-2-13@outlook.es"]
 
                 print(f"[Demo Uni] Redirigiendo correo de {email_cliente} a {destinatario_seguro} para demostración.")
 
