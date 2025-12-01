@@ -6,6 +6,7 @@ from product.models import Product
 from pedido.models import Pedido, ItemPedido, Carrito, ItemCarrito
 from decimal import Decimal
 from pedido import views
+import re
 
 class SecurityTests(TestCase):
     def setUp(self):
@@ -115,15 +116,28 @@ class ExtraSecurityTests(TestCase):
 
     def test_security_user_enumeration(self):
         url_login = reverse('client-login')
+        
+        username_no_exist = 'usuario_fantasma@test.com'
+        username_exist = 'usuario_test'
+
         response_no_exist = self.client.post(url_login, {
-            'username': 'usuario_fantasma@test.com',
+            'username': username_no_exist,
             'password': 'password123'
         })
+        
         response_wrong_pass = self.client.post(url_login, {
-            'username': 'usuario_test',
+            'username': username_exist,
             'password': 'password_incorrecta'
         })
-        self.assertEqual(response_no_exist.content, response_wrong_pass.content)
+
+        csrf_pattern = re.compile(rb'<input type="hidden" name="csrfmiddlewaretoken" value="[^"]+">')
+        
+        content_no_exist = csrf_pattern.sub(b'', response_no_exist.content)
+        content_wrong_pass = csrf_pattern.sub(b'', response_wrong_pass.content)
+        content_no_exist = content_no_exist.replace(username_no_exist.encode(), b'USER_PLACEHOLDER')
+        content_wrong_pass = content_wrong_pass.replace(username_exist.encode(), b'USER_PLACEHOLDER')
+        
+        self.assertEqual(content_no_exist, content_wrong_pass)
 
     def test_security_admin_access_control(self):
         self.client.login(username='usuario_test', password='password123')
@@ -156,6 +170,6 @@ class ExtraSecurityTests(TestCase):
             'precio': '1.00'
         }
         self.client.post(url_checkout, datos_form)
-        ultimo_pedido = Pedido.objects.filter(cliente=self.cliente).last()
-        self.assertIsNotNone(ultimo_pedido)
+        ultimo_pedido = Pedido.objects.filter(cliente=self.cliente).last() 
+        self.assertIsNotNone(ultimo_pedido) 
         self.assertEqual(ultimo_pedido.subtotal, Decimal("100.00"))
