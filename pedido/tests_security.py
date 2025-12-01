@@ -3,22 +3,19 @@ from django.urls import reverse
 from django.contrib.auth.models import User
 from client.models import Cliente
 from product.models import Product
-from pedido.models import Pedido, ItemPedido, Carrito
+from pedido.models import Pedido, ItemPedido, Carrito, ItemCarrito
 from decimal import Decimal
+from pedido import views
 
 class SecurityTests(TestCase):
     def setUp(self):
-        # Configuración inicial para las pruebas
         self.client = Client()
-        
-        # 1. Crear Usuarios (Atacante y Víctima)
         self.user_victim = User.objects.create_user(username='victima', password='password123')
         self.cliente_victim, _ = Cliente.objects.get_or_create(user=self.user_victim)
         
         self.user_attacker = User.objects.create_user(username='atacante', password='password123')
         self.cliente_attacker, _ = Cliente.objects.get_or_create(user=self.user_attacker)
 
-        # 2. Crear Producto
         self.product = Product.objects.create(
             nombre='Zapato Test',
             precio=Decimal('50.00'),
@@ -26,7 +23,6 @@ class SecurityTests(TestCase):
             disponible=True
         )
 
-        # 3. Crear Pedido de la Víctima
         self.pedido_victim = Pedido.objects.create(
             cliente=self.cliente_victim,
             numero_pedido="PED-VICTIMA-001",
@@ -36,87 +32,130 @@ class SecurityTests(TestCase):
         )
     
     def test_security_idor_order_detail(self):
-        """
-        PRUEBA DE SEGURIDAD (IDOR):
-        Un atacante logueado NO debería poder ver el detalle del pedido de la víctima.
-        """
         self.client.login(username='atacante', password='password123')
-        
-        # Intentar acceder al pedido de la víctima
         url = reverse('detalle_pedido', args=[self.pedido_victim.id])
         response = self.client.get(url)
-
-        # Si devuelve 200 (OK), es VULNERABLE. Debería ser 404 (No encontrado) o 403 (Prohibido).
-        if response.status_code == 200:
-            print("\n[FALLO DE SEGURIDAD] IDOR detectado: El atacante pudo ver el pedido de la víctima.")
-        
-        self.assertNotEqual(response.status_code, 200, "Fallo de seguridad: IDOR permite ver pedidos ajenos.")
+        self.assertNotEqual(response.status_code, 200)
 
     def test_security_payment_bypass(self):
-        """
-        PRUEBA DE SEGURIDAD (LOGICA DE NEGOCIO):
-        Verificar si se puede marcar un pedido como pagado forzando la URL de éxito
-        sin pasar por la pasarela de pago.
-        """
-        # El pedido nace como pendiente
-        self.assertEqual(self.pedido_victim.estado_pago, "pendiente")
-
-        # El atacante intenta adivinar la URL de éxito
         url_exito = reverse('pedido_pago_exito', args=[self.pedido_victim.numero_pedido])
-        
-        # Hacemos GET a la URL de éxito directamente
         self.client.get(url_exito)
-
-        # Refrescamos el objeto desde la BD
         self.pedido_victim.refresh_from_db()
-
-        # Si el estado cambió a pagado solo por visitar la URL, es VULNERABLE
-        if self.pedido_victim.estado_pago == "pagado":
-            print(f"\n[CRITICO] VULNERABILIDAD DETECTADA: Bypass de pago exitoso en {url_exito}")
-
-        # Esta aserción fallará con tu código actual, revelando el error
-        self.assertNotEqual(self.pedido_victim.estado_pago, "pagado", 
-            "Fallo crítico: El pedido se marcó como pagado simplemente visitando la URL de éxito.")
+        self.assertNotEqual(self.pedido_victim.estado_pago, "pagado")
 
     def test_security_negative_inventory(self):
-        """
-        PRUEBA DE SEGURIDAD (INTEGRIDAD DE DATOS):
-        Intentar agregar cantidades negativas al carrito.
-        """
         url = reverse('agregar_al_carrito', args=[self.product.id])
-        
-        # Intentar inyectar cantidad negativa
         data = {'cantidad': -5, 'talla_id': ''} 
-        response = self.client.post(url, data)
-        
-        # Verificar el carrito
+        self.client.post(url, data)
         carrito = Carrito.objects.first()
         if carrito:
             items = carrito.itemcarrito_set.all()
             for item in items:
-                self.assertTrue(item.cantidad > 0, "Fallo de seguridad: Se permitió una cantidad negativa en el carrito.")
-        else:
-            # Si no se creó carrito o items, la prueba pasa (fue rechazado)
-            pass
+                self.assertTrue(item.cantidad > 0)
 
     def test_xss_protection_tracking(self):
-        """
-        PRUEBA DE SEGURIDAD (XSS):
-        Intentar inyectar scripts en el formulario de rastreo.
-        """
         url = reverse('rastrear_pedido')
         script_malicioso = "<script>alert('hack')</script>"
-        
         data = {
             'numero_pedido': script_malicioso,
             'telefono': '123456789'
         }
-        
         response = self.client.post(url, data)
-        
-        # Django escapa automáticamente, pero verificamos que el script no se ejecute
-        # Si el script aparece tal cual en el HTML sin escapar, es vulnerable.
         content = response.content.decode('utf-8')
-        
-        # Verificamos que los caracteres especiales estén escapados (&lt;script&gt;)
-        self.assertNotIn(script_malicioso, content, "Posible vulnerabilidad XSS: El script se reflejó sin escapar.")
+        self.assertNotIn(script_malicioso, content)
+
+class AdvancedSecurityTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username='testuser', password='password123')
+        self.product = Product.objects.create(
+            nombre='Zapato Test', precio=Decimal('50.00'), stock=10, disponible=True
+        )
+        self.cliente, _ = Cliente.objects.get_or_create(user=self.user)
+        self.pedido = Pedido.objects.create(
+            cliente=self.cliente, numero_pedido="PED-TEST-001", 
+            subtotal=Decimal('50.00')
+        )
+
+    def test_security_unauthenticated_crash(self):
+        self.client.logout()
+        url = reverse('detalle_pedido', args=[self.pedido.id])
+        try:
+            response = self.client.get(url)
+        except TypeError:
+            self.fail()
+        self.assertNotEqual(response.status_code, 500)
+
+    def test_security_csrf_protection(self):
+        self.client.login(username='testuser', password='password123')
+        url = reverse('agregar_al_carrito', args=[self.product.id])
+        self.assertFalse(hasattr(views.agregar_al_carrito, 'csrf_exempt'))
+
+class ExtraSecurityTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username='usuario_test', email='test@test.com', password='password123')
+        self.cliente, _ = Cliente.objects.get_or_create(user=self.user)
+        self.producto = Product.objects.create(
+            nombre="Producto Test", 
+            precio=Decimal("100.00"), 
+            stock=50, 
+            disponible=True
+        )
+
+    def test_security_open_redirect_login(self):
+        url_login = reverse('client-login')
+        phishing_url = "http://malicious-site.com/login"
+        response = self.client.post(f"{url_login}?next={phishing_url}", {
+            'username': 'usuario_test',
+            'password': 'password123'
+        })
+        self.assertNotEqual(response.url, phishing_url)
+        self.assertTrue(response.url.startswith('/') or 'http' not in response.url)
+
+    def test_security_user_enumeration(self):
+        url_login = reverse('client-login')
+        response_no_exist = self.client.post(url_login, {
+            'username': 'usuario_fantasma@test.com',
+            'password': 'password123'
+        })
+        response_wrong_pass = self.client.post(url_login, {
+            'username': 'usuario_test',
+            'password': 'password_incorrecta'
+        })
+        self.assertEqual(response_no_exist.content, response_wrong_pass.content)
+
+    def test_security_admin_access_control(self):
+        self.client.login(username='usuario_test', password='password123')
+        response = self.client.get('/admin/')
+        self.assertNotEqual(response.status_code, 200)
+
+    def test_security_xss_search(self):
+        url_catalogo = reverse('product:product_list')
+        payload = '<script>alert("XSS")</script>'
+        response = self.client.get(url_catalogo, {'search': payload})
+        content = response.content.decode('utf-8')
+        self.assertIn('&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;', content)
+        self.assertNotIn(payload, content)
+
+    def test_security_price_tampering_checkout(self):
+        self.client.login(username='usuario_test', password='password123')
+        carrito = Carrito.objects.create(cliente=self.cliente)
+        ItemCarrito.objects.create(carrito=carrito, producto=self.producto, cantidad=1)
+        url_checkout = reverse('crear_pedido')
+        datos_form = {
+            'nombre': 'Hacker',
+            'apellidos': 'Test',
+            'email': 'hacker@test.com',
+            'direccion': 'Calle Falsa 123',
+            'ciudad': 'Madrid',
+            'codigo_postal': '28000',
+            'telefono': '600000000',
+            'subtotal': '1.00', 
+            'total': '1.00',
+            'precio': '1.00'
+        }
+        self.client.post(url_checkout, datos_form)
+        ultimo_pedido = Pedido.objects.filter(cliente=self.cliente).last()
+        self.assertIsNotNone(ultimo_pedido)
+        self.assertEqual(ultimo_pedido.subtotal, Decimal("100.00"))
