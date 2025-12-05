@@ -450,6 +450,7 @@ def pedido_pago_exito(request, numero_pedido):
                 pedido.estado_pago = "pagado"
                 pedido.estado = Pedido.EstadoPedido.PAGADO
                 pedido.save()
+                enviar_correo_confirmacion_pedido(pedido)
                 return render(request, "pago_exito.html", {"pedido": pedido})
         except stripe.error.StripeError:
             pass 
